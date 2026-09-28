@@ -1,6 +1,8 @@
 #!/bin/bash
 # Build Evolution X for dizi (or ruan). Usage: build.sh <log-name> [make targets...]
 #   DEVICE=dizi|ruan (default dizi)
+#   TREE=evox|lineage (default evox): lineage is the plain LineageOS 23.2 tree next to evox,
+#              whose out dirs started as copies of evox's (tools/match-mtimes.py keeps it incremental)
 #   VARIANT=user|userdebug (default userdebug, the bench build)
 #   RELEASE=1: a shareable build: VARIANT=user, no insecure adb or bench keys, and its own
 #              out dir (out-release) so the bench's incremental out/ is left alone.
@@ -9,8 +11,13 @@
 set -o pipefail
 . "$(dirname "$0")/env"
 name=${1:?log-name}; shift
-targets=${*:-evolution}
-cd "$DIZI_ROOT/evox"
+tree=$DIZI_TREE
+if [[ $tree == lineage ]]; then
+	targets=${*:-bacon}
+else
+	targets=${*:-evolution}
+fi
+cd "$DIZI_ROOT/$tree"
 if [[ -n ${RELEASE:-} ]]; then
 	VARIANT=user
 	unset WITH_ADB_INSECURE
@@ -18,10 +25,10 @@ if [[ -n ${RELEASE:-} ]]; then
 	# header generation needs vendor/lineage's relative-OUT_DIR fix for this.
 	export OUT_DIR=$DIZI_OUT_RELEASE_NAME
 else
-	exec {lock}> "$DIZI_ROOT/evox/.out.lock"
-	flock -n "$lock" || { echo "another bench build holds evox/out" >&2; exit 1; }
+	exec {lock}> "$DIZI_ROOT/$tree/.out.lock"
+	flock -n "$lock" || { echo "another bench build holds $tree/out" >&2; exit 1; }
 	if [[ -e out && ! -L out ]]; then
-		echo "evox/out is a directory; move it to $DIZI_OUT_NAME first" >&2
+		echo "$tree/out is a directory; move it to $DIZI_OUT_NAME first" >&2
 		exit 1
 	fi
 	mkdir -p "$DIZI_OUT_NAME"

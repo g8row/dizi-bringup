@@ -11,6 +11,8 @@ DIZI_WIFI=127.0.0.1:15555
 # inside stay out/... and ninja stays incremental across device switches. Release builds
 # use out-release (dizi) and out-release-<device>.
 DIZI_DEVICE=${DEVICE:-dizi}
+# Source tree: evox, or lineage (the plain LineageOS 23.2 test tree next to it).
+DIZI_TREE=${TREE:-evox}
 DIZI_OUT_NAME=out-$DIZI_DEVICE
 if [[ $DIZI_DEVICE == dizi ]]; then
 	DIZI_OUT_RELEASE_NAME=out-release

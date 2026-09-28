@@ -7,7 +7,7 @@
 set -euo pipefail
 . "$(dirname "$0")/env"
 id=${1:?build-id}
-out=$DIZI_ROOT/evox/$DIZI_OUT_NAME/target/product/$DIZI_DEVICE
+out=$DIZI_ROOT/$DIZI_TREE/$DIZI_OUT_NAME/target/product/$DIZI_DEVICE
 # An archived build (tools/archive-build.sh) takes precedence over the live out/.
 [[ -d $DIZI_ROOT/builds/$id ]] && out=$DIZI_ROOT/builds/$id
 imgs=(android-info.txt boot.img vendor_boot.img dtbo.img recovery.img vbmeta.img
