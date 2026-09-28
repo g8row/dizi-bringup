@@ -18,7 +18,12 @@ else
 	# Bench: Lineage sets ro.debuggable=0 and adb auth on userdebug unless
 	# WITH_ADB_INSECURE is set; we need adb (root) on first boot without a screen tap.
 	export WITH_ADB_INSECURE=${WITH_ADB_INSECURE-true}
-	export DIZI_ADB_KEYS=${DIZI_ADB_KEYS-$DIZI_ROOT/keys/bench_adb_keys}
+	# The bench adb key, copied into the tree (soong wants source-relative paths); not in any repo.
+	if [[ -z ${DIZI_ADB_KEYS+x} && -f $DIZI_ROOT/keys/bench_adb_keys ]]; then
+		mkdir -p vendor/dizi-bench
+		cp "$DIZI_ROOT/keys/bench_adb_keys" vendor/dizi-bench/adb_keys
+		export DIZI_ADB_KEYS=vendor/dizi-bench/adb_keys
+	fi
 fi
 variant=${VARIANT:-userdebug}
 export USE_CCACHE=1 CCACHE_EXEC=/usr/bin/ccache CCACHE_DIR=$DIZI_ROOT/.ccache
