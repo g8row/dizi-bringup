@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Test overlay: lower-resolution task snapshots (Recents cards, snapshot starting windows).
+     Signed with the platform key, installed with adb for live A/B; uninstall to remove. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.evolution.dizi.test.snapshotscale">
+    <overlay android:targetPackage="android" />
+    <application android:hasCode="false" />
+</manifest>

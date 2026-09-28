@@ -609,3 +609,34 @@ the RPHASE markers are missing; the config now also has process_stats.)
   - plus `latch_unsignaled=1`, `disable_backpressure=1`, `enable_gl_backpressure=1`,
     `disable_client_composition_cache=1` and `set_idle_timer_ms=50000` (ours 1100).
 - **Next:** A/B these live on a userdebug build (setprop, then `stop; start`). SF reads them only at startup.
+
+### 16b. Live A/B on release-1 with Magisk root (2026-09-28)
+
+`tools/sf-ab.sh`: set debug.sf props, restart the framework, warm-up run, measured run of recents-open-jank (10 cycles,
+landscape). Display timeline janky frames out of about 6900, and SF missed frames:
+
+| Run | timeline janky | missedFrames | launcher hwui janky |
+|---|---|---|---|
+| base | 1141 | 742 | 9.2% |
+| `set_idle_timer_ms=50000` (stock) | 1126 | 622 | 8.4% |
+| `enable_gl_backpressure=1` (AOSP default, stock) | 1165 | 450 | 8.5% |
+| stock phase offsets (`use_phase_offsets_as_durations=0`, high_fps late sf -2 ms, app +1 ms, early -4 ms, early_gl -2 ms) | 1084 | 624 | 10.2% |
+| DDR bus floor at 2092 MHz (all DDR min_freq) | 1136 | 480 | – |
+| `config_highResTaskSnapshotScale=0.6` (platform-signed RRO) | 1119 | 747 | 8.5% |
+
+- **No setting moves the jank.** GPU backpressure cuts missed frames by 40% but not the timeline jank.
+- **The snapshot-scale overlay didn't take effect.** It resolved to 0.6, but the starting-window snapshot stayed
+  2047x1280. A16 lets the launcher request the snapshot resolution (`respectRequestedTaskSnapshotResolution`).
+- **Launcher GPU time per frame** (hwui) is 3-6 ms at p50, 9-12 ms at p90 and 12-16 ms at p95. The launcher alone
+  overruns the 8.3 ms budget in the Recents->app transition, before SF's composition, at 940 MHz.
+  - Pixel Launcher also applies a real window blur of 60 in Overview and animates it to 0 during the launch,
+    despite `ro.launcher.depth.overview=false`.
+  - Turning window blurs off removed the blur but not the jank: the composer still takes the whole stack to GPU
+    composition mid-animation, and the launcher's GPU time stays high.
+- **Gotchas:**
+  - Switching back from phase offsets to durations while the offset props are still set makes SurfaceFlinger abort in
+    `initScheduler` (black screen; a reboot clears the debug props).
+  - `cmd overlay fabricate` can't create float resources.
+- **Remaining lever:** the launcher. It's a prebuilt, so its Recents rendering can't be tuned here. A Launcher3
+  Quickstep build from source (also proposed for the desktop-windowing issues) would allow it: blur on launch,
+  snapshot resolution, the recents grid.
