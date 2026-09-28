@@ -1,0 +1,289 @@
+From 1f69bf6aff618eb4ad6d18f77d30e811dc5a64de Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <alexander.gurov@konsulko.com>
+Date: Mon, 28 Sep 2026 07:21:38 +0300
+Subject: [PATCH] disp: msm: program handoff timing when it differs from the
+ splash timing
+
+On dizi the bootloader lights the n83 panels with the DT base timing
+(60 Hz, vfp 2784), while the preferred/handed-off mode is the first dfps
+entry (120 Hz). The first commit after continuous splash skips all DSI
+host and SDE INTF timing programming (is_skip_op_required(),
+phys_enc->cont_splash_enabled), and since the kernel has no previous mode
+it never flags the switch as DFPS/VRR. The panel then keeps running at
+60 Hz while the kernel and SurfaceFlinger believe it is at 120 Hz,
+until some later refresh rate change happens to program it.
+
+During the splash handoff, compare the vertical total programmed by the
+bootloader with the mode being handed off to. If it differs:
+ - SDE: program the INTF timing generator and set its flush bit, as a
+   seamless VRR switch would;
+ - DSI: update the host video timing through the timing double buffer
+   (dsi_ctrl_async_timing_update()), release the DB in
+   dsi_conn_prepare_commit() like a DFPS switch, and resend the
+   Xiaomi per-refresh-rate pen setting.
+Only immediate-porch-vfp DFPS video mode panels are affected; when the
+timings already match nothing changes.
+
+Untested on hardware.
+---
+ msm/dsi/dsi_display.c          | 62 ++++++++++++++++++++++++++++++++++
+ msm/dsi/dsi_display.h          |  1 +
+ msm/dsi/dsi_drm.c              | 19 +++++++++++
+ msm/sde/sde_encoder_phys.h     |  1 +
+ msm/sde/sde_encoder_phys_vid.c | 36 +++++++++++++++++---
+ msm/sde/sde_hw_intf.c          | 16 +++++++++
+ msm/sde/sde_hw_intf.h          |  8 +++++
+ 7 files changed, 139 insertions(+), 4 deletions(-)
+
+diff --git a/msm/dsi/dsi_display.c b/msm/dsi/dsi_display.c
+index 3c927a8..31b8007 100644
+--- a/msm/dsi/dsi_display.c
++++ b/msm/dsi/dsi_display.c
+@@ -16,6 +16,8 @@
+ #include "dsi_panel.h"
+ #include "dsi_ctrl.h"
+ #include "dsi_ctrl_hw.h"
++#include "dsi_ctrl_reg.h"
++#include "dsi_hw.h"
+ #include "dsi_drm.h"
+ #include "dsi_clk.h"
+ #include "dsi_pwr.h"
+@@ -8632,6 +8634,63 @@ wait_failure:
+ 	return rc;
+ }
+ 
++/*
++ * dsi_display_splash_timing_fixup() - program the handoff mode's timing
++ * @display:    Pointer to dsi display
++ *
++ * With continuous splash the bootloader has already programmed the DSI
++ * host, and dsi_display_enable() skips all host/panel programming. If the
++ * bootloader ran the video mode timing at a different refresh rate (only
++ * the vertical front porch differs on dfps_immediate_porch_mode_vfp
++ * panels), the kernel's cur_mode would silently disagree with the hardware
++ * until the next mode switch. Update the host timing the same way a
++ * seamless DFPS switch does; the timing DB is released in
++ * dsi_conn_prepare_commit() together with the SDE INTF flush.
++ * Must be called with the video engine already marked on.
++ */
++static void dsi_display_splash_timing_fixup(struct dsi_display *display)
++{
++	struct dsi_display_mode *mode = display->panel->cur_mode;
++	struct dsi_display_ctrl *ctrl;
++	struct dsi_mode_info *t;
++	u32 reg, hw_vtotal, vtotal;
++	int i, rc;
++
++	if (!mode || display->config.panel_mode != DSI_OP_VIDEO_MODE ||
++	    !display->panel->dfps_caps.dfps_support ||
++	    display->panel->dfps_caps.type != DSI_DFPS_IMMEDIATE_VFP)
++		return;
++
++	ctrl = &display->ctrl[display->clk_master_idx];
++	if (!ctrl->ctrl)
++		return;
++
++	t = &mode->timing;
++	reg = DSI_R32(&ctrl->ctrl->hw, DSI_VIDEO_MODE_TOTAL);
++	hw_vtotal = ((reg >> 16) & 0xFFFF) + 1;
++	vtotal = t->v_sync_width + t->v_back_porch + t->v_active +
++		t->v_front_porch;
++	if (!reg || hw_vtotal == vtotal)
++		return;
++
++	DSI_INFO("[%s] splash vtotal %u != mode vtotal %u (%u Hz), updating host timing\n",
++		display->name, hw_vtotal, vtotal, t->refresh_rate);
++	SDE_EVT32(hw_vtotal, vtotal, t->refresh_rate, SDE_EVTLOG_FUNC_CASE1);
++
++	display_for_each_ctrl(i, display) {
++		ctrl = &display->ctrl[i];
++		if (!ctrl->ctrl)
++			continue;
++		rc = dsi_ctrl_async_timing_update(ctrl->ctrl, t);
++		if (rc) {
++			DSI_ERR("[%s] splash timing update failed on ctrl %d, rc=%d\n",
++				display->name, i, rc);
++			return;
++		}
++	}
++	display->splash_timing_db_pending = true;
++}
++
+ int dsi_display_config_ctrl_for_cont_splash(struct dsi_display *display)
+ {
+ 	int rc = 0;
+@@ -8728,6 +8787,9 @@ int dsi_display_enable(struct dsi_display *display)
+ 
+ 		dsi_display_config_ctrl_for_cont_splash(display);
+ 
++		if (display->is_cont_splash_enabled)
++			dsi_display_splash_timing_fixup(display);
++
+ 		rc = dsi_display_splash_res_cleanup(display);
+ 		if (rc) {
+ 			DSI_ERR("Continuous splash res cleanup failed, rc=%d\n",
+diff --git a/msm/dsi/dsi_display.h b/msm/dsi/dsi_display.h
+index 1dc6fad..17830d7 100644
+--- a/msm/dsi/dsi_display.h
++++ b/msm/dsi/dsi_display.h
+@@ -207,6 +207,7 @@ struct dsi_display {
+ 	const char *display_type;
+ 	struct list_head list;
+ 	bool is_cont_splash_enabled;
++	bool splash_timing_db_pending;
+ 	bool sw_te_using_wd;
+ 	struct mutex display_lock;
+ 	int disp_te_gpio;
+diff --git a/msm/dsi/dsi_drm.c b/msm/dsi/dsi_drm.c
+index 76630f4..0bd4b76 100644
+--- a/msm/dsi/dsi_drm.c
++++ b/msm/dsi/dsi_drm.c
+@@ -1377,6 +1377,25 @@ int dsi_conn_post_kickoff(struct drm_connector *connector,
+ 		c_bridge->dsi_mode.dsi_mode_flags &= ~DSI_MODE_FLAG_VRR;
+ 	}
+ 
++	if (display->splash_timing_db_pending) {
++		display->splash_timing_db_pending = false;
++		display_for_each_ctrl(i, display) {
++			ctrl = &display->ctrl[i];
++			if (!ctrl->ctrl)
++				continue;
++			rc = dsi_ctrl_timing_db_update(ctrl->ctrl, false);
++			if (rc)
++				DSI_ERR("[%s] splash timing db update failed rc=%d\n",
++					display->name, rc);
++		}
++
++		/* panel-side pen scan rate follows the refresh rate */
++		mutex_lock(&display->panel->panel_lock);
++		mi_dsi_panel_match_fps_pen_setting(display->panel,
++				display->panel->cur_mode);
++		mutex_unlock(&display->panel->panel_lock);
++	}
++
+ 	/* ensure dynamic clk switch flag is reset */
+ 	c_bridge->dsi_mode.dsi_mode_flags &= ~DSI_MODE_FLAG_DYN_CLK;
+ 
+diff --git a/msm/sde/sde_encoder_phys.h b/msm/sde/sde_encoder_phys.h
+index 117bdd1..30ebb78 100644
+--- a/msm/sde/sde_encoder_phys.h
++++ b/msm/sde/sde_encoder_phys.h
+@@ -341,6 +341,7 @@ struct sde_encoder_phys {
+ 	struct sde_encoder_irq irq[INTR_IDX_MAX];
+ 	bool has_intf_te;
+ 	bool cont_splash_enabled;
++	bool splash_timing_update;
+ 	bool in_clone_mode;
+ 	int vfp_cached;
+ 	enum frame_trigger_mode_type frame_trigger_mode;
+diff --git a/msm/sde/sde_encoder_phys_vid.c b/msm/sde/sde_encoder_phys_vid.c
+index faba21c..c1f7e80 100644
+--- a/msm/sde/sde_encoder_phys_vid.c
++++ b/msm/sde/sde_encoder_phys_vid.c
+@@ -457,10 +457,38 @@ static void sde_encoder_phys_vid_setup_timing_engine(
+ 
+ 	vid_enc->timing_params = timing_params;
+ 
++	phys_enc->splash_timing_update = false;
+ 	if (phys_enc->cont_splash_enabled) {
+-		SDE_DEBUG_VIDENC(vid_enc,
+-			"skipping intf programming since cont splash is enabled\n");
+-		goto exit;
++		u32 hw_vtotal = 0, vtotal;
++
++		/*
++		 * The bootloader may run the panel at a different refresh rate
++		 * than the (preferred) mode being handed off to, e.g. 60 Hz
++		 * vs 120 Hz on a dfps_immediate_porch_mode_vfp panel. The
++		 * mode then "matches" in software and is never programmed,
++		 * so the panel stays at the bootloader rate until the next
++		 * real mode switch. If only the vertical total differs,
++		 * program the new timing now, like a seamless VRR switch.
++		 */
++		vtotal = timing_params.vsync_pulse_width +
++			timing_params.v_back_porch + timing_params.height +
++			timing_params.v_front_porch;
++		if (phys_enc->hw_intf->ops.get_vtotal)
++			hw_vtotal = phys_enc->hw_intf->ops.get_vtotal(
++					phys_enc->hw_intf);
++
++		if (!hw_vtotal || hw_vtotal == vtotal) {
++			SDE_DEBUG_VIDENC(vid_enc,
++				"skipping intf programming since cont splash is enabled\n");
++			goto exit;
++		}
++
++		SDE_INFO("intf %d: splash vtotal %u != mode vtotal %u (%d Hz), reprogramming timing\n",
++			phys_enc->hw_intf->idx - INTF_0, hw_vtotal, vtotal,
++			drm_mode_vrefresh(&mode));
++		SDE_EVT32(DRMID(phys_enc->parent), hw_vtotal, vtotal,
++			SDE_EVTLOG_FUNC_CASE1);
++		phys_enc->splash_timing_update = true;
+ 	}
+ 
+ 	fmt = sde_get_sde_format(fmt_fourcc);
+@@ -833,7 +861,7 @@ static void sde_encoder_phys_vid_enable(struct sde_encoder_phys *phys_enc)
+ 	 * skip flushing intf during cont. splash handoff since bootloader
+ 	 * has already enabled the hardware and is single buffered.
+ 	 */
+-	if (phys_enc->cont_splash_enabled) {
++	if (phys_enc->cont_splash_enabled && !phys_enc->splash_timing_update) {
+ 		SDE_DEBUG_VIDENC(vid_enc,
+ 		"skipping intf flush bit set as cont. splash is enabled\n");
+ 		goto skip_flush;
+diff --git a/msm/sde/sde_hw_intf.c b/msm/sde/sde_hw_intf.c
+index b20052d..c7cc15a 100644
+--- a/msm/sde/sde_hw_intf.c
++++ b/msm/sde/sde_hw_intf.c
+@@ -602,6 +602,21 @@ static u32 sde_hw_intf_get_line_count(struct sde_hw_intf *intf)
+ 	return SDE_REG_READ(c, INTF_LINE_COUNT) & 0xffff;
+ }
+ 
++static u32 sde_hw_intf_get_vtotal(struct sde_hw_intf *intf)
++{
++	struct sde_hw_blk_reg_map *c;
++	u32 hsync_period, vsync_period_f0;
++
++	if (!intf)
++		return 0;
++
++	c = &intf->hw;
++	hsync_period = SDE_REG_READ(c, INTF_HSYNC_CTL) >> 16;
++	vsync_period_f0 = SDE_REG_READ(c, INTF_VSYNC_PERIOD_F0);
++
++	return hsync_period ? vsync_period_f0 / hsync_period : 0;
++}
++
+ static u32 sde_hw_intf_get_underrun_line_count(struct sde_hw_intf *intf)
+ {
+ 	struct sde_hw_blk_reg_map *c;
+@@ -910,6 +925,7 @@ static void _setup_intf_ops(struct sde_hw_intf_ops *ops,
+ 	ops->setup_misr = sde_hw_intf_setup_misr;
+ 	ops->collect_misr = sde_hw_intf_collect_misr;
+ 	ops->get_line_count = sde_hw_intf_get_line_count;
++	ops->get_vtotal = sde_hw_intf_get_vtotal;
+ 	ops->get_underrun_line_count = sde_hw_intf_get_underrun_line_count;
+ 	ops->get_intr_status = sde_hw_intf_get_intr_status;
+ 	ops->avr_setup = sde_hw_intf_avr_setup;
+diff --git a/msm/sde/sde_hw_intf.h b/msm/sde/sde_hw_intf.h
+index c032f0b..332fd79 100644
+--- a/msm/sde/sde_hw_intf.h
++++ b/msm/sde/sde_hw_intf.h
+@@ -117,6 +117,14 @@ struct sde_hw_intf_ops {
+ 	u32 (*get_line_count)(struct sde_hw_intf *intf);
+ 	u32 (*get_underrun_line_count)(struct sde_hw_intf *intf);
+ 
++	/**
++	 * returns the vertical total (lines per frame) currently programmed
++	 * in the timing generator, 0 if it cannot be determined. Used to
++	 * detect a bootloader (cont. splash) timing that differs from the
++	 * mode the kernel is handing off to.
++	 */
++	u32 (*get_vtotal)(struct sde_hw_intf *intf);
++
+ 	void (*setup_vsync_source)(struct sde_hw_intf *intf, u32 frame_rate);
+ 
+ 	void (*bind_pingpong_blk)(struct sde_hw_intf *intf,
+-- 
+2.47.3
+

@@ -1,0 +1,11 @@
+# Sourced by the dizi bring-up scripts. Bench-specific values (the Mac the tablet is plugged into,
+# its ssh key, the tablet's adb serial) go in tools/env.local, which is not tracked.
+DIZI_HOST=user@mac-host
+DIZI_SSH_KEY="$HOME/.ssh/id_ed25519"
+DIZI_SERIAL=
+DIZI_REMOTE_DIR=dizi
+DIZI_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+DIZI_WIFI=127.0.0.1:15555
+if [[ -f $DIZI_ROOT/tools/env.local ]]; then
+	. "$DIZI_ROOT/tools/env.local"
+fi

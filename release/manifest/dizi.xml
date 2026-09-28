@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Local manifest for building Evolution X (bka) for the Redmi Pad Pro (dizi).
+  Put it in .repo/local_manifests/ after `repo init -u https://github.com/Evolution-X/manifest -b bka`,
+  then `repo sync`, then:
+    source build/envsetup.sh && lunch lineage_dizi-bp4a-user && m evolution
+  Replace GITHUB_USER with the account that hosts the dizi repositories.
+-->
+<manifest>
+  <remote name="dizi" fetch="https://github.com/GITHUB_USER" />
+
+  <!-- Device, prebuilt kernel artefacts, proprietary blobs -->
+  <project path="device/xiaomi/dizi" name="device_xiaomi_dizi" remote="dizi" revision="bka" />
+  <project path="device/xiaomi/dizi-kernel" name="device_xiaomi_dizi-kernel" remote="dizi" revision="bka" />
+  <project path="vendor/xiaomi/dizi" name="vendor_xiaomi_dizi" remote="dizi" revision="bka" />
+
+  <!-- Kernel headers for the QTI HALs (from the garnet kernel tree), and shared dependencies -->
+  <project path="kernel/xiaomi/sm7435" name="kernel_xiaomi_garnet" remote="evo-devices" revision="bka" clone-depth="1" />
+  <project path="kernel/xiaomi/sm7435-modules" name="kernel_xiaomi_garnet-modules" remote="evo-devices" revision="bka" clone-depth="1" />
+  <project path="hardware/xiaomi" name="Evolution-X-Devices/hardware_xiaomi" remote="github-non-los" revision="bka-no-dolby" />
+  <project path="hardware/dolby" name="Evolution-X-Devices/hardware_dolby" remote="github-non-los" revision="bka-aospa" />
+  <project path="packages/apps/GameBar" name="packages_apps_GameBar" remote="evo-devices" revision="bka" />
+
+  <!--
+    Platform fixes not yet upstream (see device_xiaomi_dizi README): either apply the patches
+    shipped in the device tree, or replace these projects with the forks below.
+      system/core    init: Keep /data/resource-cache on upgrade
+      build/make     releasetools: accept a ZipFile in PartitionMapFromTargetFiles (signing)
+      vendor/lineage config: Prefix the kernel out dir for any relative OUT_DIR (release builds only)
+      vendor/gms     CrossDeviceAccessServicePrimary uses-library
+  -->
+</manifest>

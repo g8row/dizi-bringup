@@ -1,0 +1,29 @@
+From bde0a68bf747346955cdb10a11fa73b79146d3fb Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <alexander.gurov@konsulko.com>
+Date: Mon, 28 Sep 2026 07:22:05 +0300
+Subject: [PATCH] disp: msm: dsi: include nt36532 dsi_touch_gesture.h via the
+ include path
+
+The MiCode tree hardcodes a kernel_platform-relative path to the nt36532
+touch driver header. Resolve it through the include path instead
+(-I<micode-ruan>/drivers/input/touchscreen).
+---
+ msm/dsi/dsi_panel.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/msm/dsi/dsi_panel.h b/msm/dsi/dsi_panel.h
+index 6495fa5..6002a79 100644
+--- a/msm/dsi/dsi_panel.h
++++ b/msm/dsi/dsi_panel.h
+@@ -22,7 +22,7 @@
+ #include "dsi_pwr.h"
+ #include "dsi_parser.h"
+ #include "msm_drv.h"
+-#include "../../../../../../kernel_platform/msm-kernel/drivers/input/touchscreen/nt36532_spi/dsi_touch_gesture.h"
++#include "nt36532_spi/dsi_touch_gesture.h"
+ #include "mi_dsi_panel.h"
+ 
+ #define MAX_BL_LEVEL 4096
+-- 
+2.47.3
+

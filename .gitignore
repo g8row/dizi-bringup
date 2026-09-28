@@ -1,0 +1,21 @@
+# Only the bring-up tooling and docs are tracked. Never add keys/, stock/, builds/ or recon/.
+/*
+!/.gitignore
+!/README.md
+!/PLAN.md
+!/tools/
+!/research/
+!/release/
+!/kernel/
+/tools/env.local
+/tools/**/*.class
+/release/out/
+/kernel/*
+!/kernel/build-gki.sh
+!/kernel/build-gki-modules.sh
+!/kernel/fetch.sh
+!/kernel/patches/
+!/kernel/out-display/
+/kernel/out-display/*
+!/kernel/out-display/build.sh
+!/kernel/out-display/tools/
