@@ -42,11 +42,17 @@ signed=$work/signed-target_files.zip
 # From the tree root: apkcerts gives APKs inside APEXes (AdServices...) their own keys as
 # source-relative paths.
 cd "$E"
+# A finished signed target-files is reused (it is only renamed into place on success).
+if [[ -f $signed && $signed -nt $tf ]]; then
+	echo "reusing $signed"
+else
 sign_target_files_apks -o -d "$K" \
 	--avb_vbmeta_key "$K/avb.pem" --avb_vbmeta_algorithm SHA256_RSA4096 \
 	--avb_vbmeta_system_key "$K/avb.pem" --avb_vbmeta_system_algorithm SHA256_RSA4096 \
 	--avb_recovery_key "$K/avb.pem" --avb_recovery_algorithm SHA256_RSA4096 \
-	"${apex_args[@]}" "$tf" "$signed" > "$work/sign.log" 2>&1 || { tail -20 "$work/sign.log"; exit 1; }
+	"${apex_args[@]}" "$tf" "$signed.tmp" > "$work/sign.log" 2>&1 || { tail -20 "$work/sign.log"; exit 1; }
+mv "$signed.tmp" "$signed"
+fi
 echo "signed target-files: $signed"
 
 ota_from_target_files -k "$K/releasekey" "$signed" "$work/$name.zip" > "$work/ota.log" 2>&1 || { tail -20 "$work/ota.log"; exit 1; }
