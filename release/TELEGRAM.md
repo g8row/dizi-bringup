@@ -21,6 +21,7 @@ Updated: <DATE>
 • **Redmi Smart Pen:** auto-pairing, pressure, hover, palm rejection, button actions
   (Settings → Connected devices → Pen)
 • Split screen and desktop windowing, tablet taskbar
+• Double-tap to wake (Settings → Display → Tap to wake)
 • 4K hardware decode for H.264/HEVC/VP9, all four speakers, deep sleep at ~6 mA
 
 **Install (clean flash)**
@@ -34,7 +35,7 @@ Alternative: the fastboot package with `./flash-dizi.sh` (see the guide)
 **Notes**
 • Wi-Fi model (dizi) only. Not for the 5G model (ruan)
 • Updates: dirty-flash the new zip via recovery sideload, no format needed
-• Blur in QS and the app drawer costs a few frames: Developer options → Allow window-level blurs to disable
+• Blur in QS and the app drawer costs a few frames: Settings → Display → turn off window blurs
 • Not yet verified: the headphone jack, USB-C audio, Bluetooth audio, the keyboard,
   and 33 W charging. Please report
 • Never relock the bootloader on a custom ROM

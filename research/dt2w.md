@@ -445,3 +445,17 @@ the Settings toggle.
    * Open the cover: it wakes (`LID_BEHAVIOR`). Double-tap still works afterwards.
 6. **False-wake soak:** leave it in a bag or case overnight with DT2W on. Check the batterystats
    screen-on count and wake reasons (`dumpsys power` `WAKE_REASON_WAKE_KEY` / "android.policy:KEY").
+
+## Verified on release-1 (2026-09-28, Magisk root)
+
+- `sendevent /dev/input/event6 0 1 5` with the screen on logs `nvt_gesture_switch ... value = 5`,
+  `gesture_pen and gesture_mode All True` and `enable gesture mode`.
+- At screen off: `nvt_ts_suspend: Enabled touch wakeup gesture`, then `[TP gesture], lcd_reset_keep_high`.
+  A double tap logs `Gesture : Double Click.` and the tablet wakes. The user confirmed it.
+- **The mode survives suspend/resume:** later suspends log `Enabled touch wakeup gesture` again, and a second
+  double tap woke the tablet with nothing re-sent. The HAL therefore writes only on the setting change, and never
+  while the panel is off (the driver would defer the write and toggle on the next resume).
+- **Implemented in 83fa9e8:** `power/power-mode.cpp` (`libperfmgr-ext-dizi`, `Mode::DOUBLE_TAP_TO_WAKE`),
+  `config_supportDoubleTapWake`, `def_double_tap_to_wake=false`, and hal_power_default access to input_device.
+- **Open:** standby drain with DT2W on (and on-then-off), and taps through a closed cover (a PhoneWindowManager lid
+  check).

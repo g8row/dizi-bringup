@@ -55,6 +55,7 @@ Updates only install over builds signed with the same keys, i.e. this ROM's own 
   - touch;
   - the Redmi Smart Pen: automatic pairing, pressure, hover, palm rejection;
   - pen settings in *Settings → Connected devices → Pen* (button actions: fixed in this build, not yet re-verified).
+  - double-tap to wake: *Settings → Display → Tap to wake* (off by default).
 - **Audio:** all four speakers and the microphones.
 - **Camera:** rear and front, photo and video.
 - **Video:** hardware decode of H.264, HEVC and VP9 up to 4K. Widevine **L1** (HD streaming).
@@ -69,7 +70,7 @@ Updates only install over builds signed with the same keys, i.e. this ROM's own 
 ## Known issues
 
 - The quick settings shade and the app drawer drop a few frames. This comes from the blur effect;
-  turning off *Developer options → Allow window-level blurs* removes it.
+  turning off the window blurs switch in *Settings → Display* removes it.
 - The first camera launch right after a boot sometimes takes no photo. Take it again.
 - Going from Recents to the home screen, the floating taskbar hangs at the bottom for about a second before the
   dock appears (Pixel Launcher can't morph its floating taskbar into this dock layout). Pinning the taskbar
@@ -78,6 +79,8 @@ Updates only install over builds signed with the same keys, i.e. this ROM's own 
 - Desktop windowing: opening a fullscreen app from Recents while desktop windows are open can leave those
   windows floating on top. Releasing the app handle near the top gives a maximized desktop window that
   looks the same as fullscreen.
+- Double-tap to wake: its battery cost in standby is not measured yet, and a tap through a closed
+  magnetic cover can wake the tablet.
 - Not tested yet: the headphone jack, USB-C audio, Bluetooth audio, the Redmi keyboard, OTG,
   33 W fast charging, and the Wi-Fi hotspot. Reports are welcome.
 

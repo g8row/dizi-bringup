@@ -26,6 +26,10 @@ and runs a kernel built from source.
 - **SELinux enforcing**, with no denials during normal use.
 - **Widevine L1**, and hardware video decode up to 4K (H.264, HEVC, VP9).
 - **Tablet features:** split screen and desktop windowing, large-screen launcher and taskbar.
+- **Double-tap to wake** (Settings → Display → Tap to wake, off by default), using the stock touch
+  controller's wakeup gesture.
+- **USB works right after boot:** the USB controller sometimes misses the cable at boot; this is now
+  recovered automatically, so MTP and adb no longer need a replug.
 
 ## Known issues and untested features
 
