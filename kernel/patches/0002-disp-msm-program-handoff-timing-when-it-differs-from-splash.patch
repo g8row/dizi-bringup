@@ -1,8 +1,8 @@
-From 1f69bf6aff618eb4ad6d18f77d30e811dc5a64de Mon Sep 17 00:00:00 2001
-From: Alexander Gurov <alexander.gurov@konsulko.com>
+From 2a0efb497e8d90a9f9d78b766453d6d1bf5b48c9 Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <aliogu23@gmail.com>
 Date: Mon, 28 Sep 2026 07:21:38 +0300
-Subject: [PATCH] disp: msm: program handoff timing when it differs from the
- splash timing
+Subject: [PATCH 2/2] disp: msm: program handoff timing when it differs from
+ the splash timing
 
 On dizi the bootloader lights the n83 panels with the DT base timing
 (60 Hz, vfp 2784), while the preferred/handed-off mode is the first dfps

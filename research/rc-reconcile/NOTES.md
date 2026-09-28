@@ -67,7 +67,7 @@ blocks from the current tree.
 | `iop`, `qmiproxy`, `move_wifi_data`, `wigignpt` (+trigger), `sensingdaemon`, `dhcpcd_*`/`iprenew_*` (wlan, bond0, p2p, wigig0, bt-pan), `ptt_socket_app`, `ptt_ffbm`, `wifi_ftmd` + pronto insmod, `qti-testscripts` (+start), `qvop-daemon`, `vendor.atfwd` (+2 triggers), `battery_monitor`, `vendor.ril-daemon2/3`, `profiler_daemon`, `diag_mdlog_start/stop`, `qlogd` (+triggers), `vm_bms`, `vendor.msm_irqbal_lb`, `vendor.msm_irqbl_sdm630`, `vendor.LKCore-dbg/rel`, `qseeproxydaemon`, `poweroffhandler`, `vendor.hbtp`, `chre` (+trigger), rild.libpath trigger | the binary or config is missing from our build (most are missing from stock too), or it is telephony |
 | `service charger /system/bin/charger` | no such binary in our system. Off-mode charging comes from `vendor.charger` in android.hardware.health-service.qti.rc |
 | `service wpa_supplicant` | **duplicate**: our supplicant is defined in `vendor/etc/init/android.hardware.wifi.supplicant-service.rc` (AIDL, socket wpa_wlan0). The stock QCOM definition (socket vendor_wpa_wlan0, `-puse_p2p_group_interface=1`) must not be added back |
-| `service time_daemon` | **duplicate** of `init.time_daemon.rc` (garnet commit acd3877 removed it for the same reason) |
+| `service time_daemon` | **duplicate** of `init.time_daemon.rc` (garnet commit c1c53b0 removed it for the same reason) |
 | `service vendor.msm_irqbalance` | **duplicate** of `init.qti.kernel.rc` (identical definition). The current build has both, so init logs a duplicate-service error |
 | `start wcnss-service` in the vold.decrypt trigger | no such service |
 
@@ -75,7 +75,7 @@ blocks from the current tree.
 
 | Removed | Reason |
 |---|---|
-| `enable vendor.qcrild/qcrild2/dataqti/dataadpl` (garnet ce35584) | telephony. dataqti.rc/dataadpl.rc are still shipped but stay `disabled` |
+| `enable vendor.qcrild/qcrild2/dataqti/dataadpl` (garnet bb1ad61) | telephony. dataqti.rc/dataadpl.rc are still shipped but stay `disabled` |
 | `vendor.display.mixer_resolution` from `persist.sys.miui_resolution` (2 places) | MIUI framework prop, never set on our ROM. Not in dizi stock |
 | `/data/vendor/modem` (+diag_logs 0777), `/dev/smd8` perms | modem |
 | `/data/vendor/camera/offlinelog` 0777, `/dev/camlog`, `/dev/mi_exception_log`, `/proc/mi_log/*` | MIUI logging, not in dizi stock |
@@ -112,7 +112,7 @@ blocks from the current tree.
 |---|---|
 | touch `gesture_{single,double}_tap_enabled`, `gesture_double_tap_state` chown/chmod | used by hardware/xiaomi sensors v2 (`Sensor.h`), which is enabled by `ro.vendor.sensors.xiaomi.{single,double}_tap=true` in props/vendor.prop. The HAL runs as system |
 | `on charger`: `qcom_lpm/parameters/sleep_disabled 0` | LineageOS change so off-mode charging can reach low-power modes |
-| `on property:sys.boot_completed=1`: `chmod 440 /proc/net/unix` | garnet 0b61ef1 (banking-app root detection). vendor_init has setattr on proc_net |
+| `on property:sys.boot_completed=1`: `chmod 440 /proc/net/unix` | garnet c7acaed (banking-app root detection). vendor_init has setattr on proc_net |
 
 ### Removed vs stock
 
@@ -122,7 +122,7 @@ blocks from the current tree.
 | `/dev/xlog` 0666 | MIUI log device. ueventd.qcom.rc sets 0660 system audio |
 | `on fs && sku=taro` spunvm mount | dizi is sku=parrot, so it never triggers |
 | post-fs `/dev/miev` (misight) | no misight in our build. It causes the b19 `vendor_init getattr device:chr_file /dev/miev` denial |
-| post-fs `setrlimit 8` | redundant with init.qcom.rc early-boot (garnet f7bf097) |
+| post-fs `setrlimit 8` | redundant with init.qcom.rc early-boot (garnet b700cf4) |
 | `persist.sys.offlinelog.*` setprops | MIUI, system-owned persist props |
 | SarNV writes/chmod 0666 and **chmod 0707** on `/mnt/vendor/persist/rfs/msm/mpss` | modem SAR. 0707 on persist rfs is dangerous |
 | `mi_serial` + post-fs trigger | `init.mi.serial.sh` is not in our vendor. It only mirrors persist serial/MAC files into ro.ril.oem.* props. The BT HAL reads `/mnt/vendor/persist/wlan/bt_mac.bin` itself, and cnss-daemon reads `wlan_mac.bin` |

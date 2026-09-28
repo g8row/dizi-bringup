@@ -485,10 +485,10 @@ QS pulldown (tools/ui-jank.sh QS_ONLY, landscape, 20 cycles), trace logs/build-2
   types), so the blur radius needs a build: b27 sets max_shade_window_blur_radius 34dp -> 20dp.
 - `debug.sf.enable_layer_caching=1` (SF planner): **worse**, 7.3-8.5%. Rejected.
 - **b27 race:** the init.dizi.rc property overrides raced with CAF's init.qti.display_boot.sh; on b27 the
-  composer started with enable_rotator_ui=1 (idle home all GPU, QS 44%). Fixed in 41f8360 (b28): the parrot
+  composer started with enable_rotator_ui=1 (idle home all GPU, QS 44%). Fixed in 541c516 (b28): the parrot
   values are static build.prop entries, and the script and overrides are gone.
 - **Blur radius 20dp vs 34dp** (composer fixed): 5.5% vs 5.6%. No effect; reverted.
-- **EXPENSIVE_RENDERING GPU floor 940 MHz** (was 734): 4.70-5.09% (p90 17 ms) vs ~5.5% (p90 19 ms). Kept (631fcbd, b29).
+- **EXPENSIVE_RENDERING GPU floor 940 MHz** (was 734): 4.70-5.09% (p90 17 ms) vs ~5.5% (p90 19 ms). Kept (b394fce, b29).
 - Remaining QS floor ~4.7% = GPU composition of the full-screen layers under the blurred shade at
   2560x1600@120. Only faster GPU work (driver, blocked) or less of it (fewer/smaller layers under the
   shade) can move it.
@@ -502,7 +502,7 @@ tools/recents-jank.sh: 5 apps in recents, then 10 x (APP_SWITCH, fling right/lef
   SF GPU completion averages 7.3 ms. Task-snapshot binder calls on LauncherBgIO take ~24 ms each (52 calls).
 - Blur off: **2.99%, p50 11 ms**. Portrait (30dp depth blur): 7.31%.
 - Cause: Pixel Launcher `dimen/max_depth_blur_radius_enhanced` is 30dp but **600dp in values-land**.
-  LauncherOverlayDizi (f7f3d1b, b31) sets landscape to 30dp.
+  LauncherOverlayDizi (96fda0a, b31) sets landscape to 30dp.
 
 ## 14. Intermittent 60 Hz panel on boot (b27, b31: "44 ms frames")
 
@@ -531,7 +531,7 @@ tools/recents-jank.sh: 5 apps in recents, then 10 x (APP_SWITCH, fling right/lef
 tools/app-start.sh (cold: median of 3 after force-stop; return: after opening all 9 apps).
 - **zram lz4 vs lzo-rle** (b35 vs b34): cold and hot times within noise (hot sum 1387 vs 1381 ms). Ratio 3.0:1
   vs 3.5:1. Kept lz4 (standard, faster decompression); no visible gain on this workload.
-- **ADPF** (b36, 7e681ea): sessions work under enforcing, RenderThread/UI uclamp.min up to 512 during flings,
+- **ADPF** (b36, 725a92f): sessions work under enforcing, RenderThread/UI uclamp.min up to 512 during flings,
   0 at idle, 0 denials. Jank within noise (the bottlenecks are GPU/SF). Kept for apps and games that use the
   performance hint API. SF hints (debug.sf.enable_adpf_cpu_hint) not enabled.
 - **Dalvik phone-xhdpi-6144 vs tablet-2048** (live props + zygote restart, USAP pool on): cold starts

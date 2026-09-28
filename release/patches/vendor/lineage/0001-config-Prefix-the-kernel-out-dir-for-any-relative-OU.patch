@@ -1,5 +1,5 @@
-From 30a63af7adfa6ec973362847998862ad74be1edd Mon Sep 17 00:00:00 2001
-From: Alexander Gurov <alexander.gurov@konsulko.com>
+From 3c727712790d7ddb0b0d4b838886d82005a38cac Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <aliogu23@gmail.com>
 Date: Mon, 28 Sep 2026 11:05:25 +0300
 Subject: [PATCH] config: Prefix the kernel out dir for any relative OUT_DIR
 

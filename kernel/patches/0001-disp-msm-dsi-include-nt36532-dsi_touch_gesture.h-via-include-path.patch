@@ -1,8 +1,8 @@
-From bde0a68bf747346955cdb10a11fa73b79146d3fb Mon Sep 17 00:00:00 2001
-From: Alexander Gurov <alexander.gurov@konsulko.com>
+From 2ffadfdc844836b3cd411d4eb0cece6e7583eb64 Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <aliogu23@gmail.com>
 Date: Mon, 28 Sep 2026 07:22:05 +0300
-Subject: [PATCH] disp: msm: dsi: include nt36532 dsi_touch_gesture.h via the
- include path
+Subject: [PATCH 1/2] disp: msm: dsi: include nt36532 dsi_touch_gesture.h via
+ the include path
 
 The MiCode tree hardcodes a kernel_platform-relative path to the nt36532
 touch driver header. Resolve it through the include path instead

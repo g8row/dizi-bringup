@@ -290,7 +290,7 @@ landscape clientComposition before and after `enable_rotator_ui` / hybrid.
 
 **What changed**
 
-* `trees/staging` commit `fc304c8` "dizi: Ship stock libsdmcore under the source display composer":
+* `trees/staging` commit `00963a5` "dizi: Ship stock libsdmcore under the source display composer":
   * `proprietary-files.txt`: new section `# Display (stock SDM core)` with
     `vendor/lib/libsdmcore.so` and `vendor/lib64/libsdmcore.so`. These are unpinned like the rest
     and need no fixups, so the shipped files are byte-identical to stock.
@@ -359,7 +359,7 @@ landscape clientComposition before and after `enable_rotator_ui` / hybrid.
 
 **Rollback**
 
-Revert `fc304c8` in trees/staging (or drop the two `libsdmcore.so` lines from
+Revert `00963a5` in trees/staging (or drop the two `libsdmcore.so` lines from
 proprietary-files.txt and the EXTRA group from gen-blobs.py), fast-forward
 evox/device/xiaomi/dizi, then rerun extract-files.py, or revert the vendor/xiaomi/dizi regen
 commit. The source libsdmcore then gets installed again automatically as the composer's

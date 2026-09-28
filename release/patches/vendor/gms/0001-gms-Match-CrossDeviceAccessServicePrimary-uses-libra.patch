@@ -1,5 +1,5 @@
-From 242a74525d24b16507051e2d35d2109c0b382576 Mon Sep 17 00:00:00 2001
-From: Alexander Gurov <alexander.gurov@konsulko.com>
+From 4ee211d8cf87e0305b64e1bf328af8d8e6b5dbbe Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <aliogu23@gmail.com>
 Date: Sat, 26 Sep 2026 23:12:48 +0300
 Subject: [PATCH] gms: Match CrossDeviceAccessServicePrimary uses-library to
  its manifest

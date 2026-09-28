@@ -1,5 +1,5 @@
-From 3d7babc002ed752fda0565d6247048d613ed76d6 Mon Sep 17 00:00:00 2001
-From: Alexander Gurov <alexander.gurov@konsulko.com>
+From 0771ce45bf7bae7b08b32934531eb1aadf47c385 Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <aliogu23@gmail.com>
 Date: Sun, 27 Sep 2026 22:30:09 +0300
 Subject: [PATCH] renderengine: Force realtime Vulkan queue priority when
  unqueried

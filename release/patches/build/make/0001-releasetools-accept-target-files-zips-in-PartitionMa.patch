@@ -1,5 +1,5 @@
-From a77041a097b0b526cb83decd0ab775fe513689e4 Mon Sep 17 00:00:00 2001
-From: Alexander Gurov <alexander.gurov@konsulko.com>
+From 504650b624097e387965608baad6ec56fa60a782 Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <aliogu23@gmail.com>
 Date: Mon, 28 Sep 2026 12:37:56 +0300
 Subject: [PATCH] releasetools: accept target-files zips in
  PartitionMapFromTargetFiles

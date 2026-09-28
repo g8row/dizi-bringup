@@ -17,7 +17,7 @@ item. Details and gotchas go in README.md, measurements in logs/, analysis in re
 - **Tablet: b39** (last flashed). b40 (the pen button fix) was built but not flashed: the deploy was stopped
   before the flash step when the tablet left.
 - **Archived, ready to flash** (`builds/`):
-  - **build-40:** main line = b39 + the pen stylus-keycode fix (c7f078d). Flash first; ask the user to test the pen buttons.
+  - **build-40:** main line = b39 + the pen stylus-keycode fix (e5ba70e). Flash first; ask the user to test the pen buttons.
   - **build-41-tune:** experiment/adpf-tune = b40 + a softer INTERACTION CPU floor (little 1.32 GHz, big 1.19 GHz,
     was 1.96/1.50) + SurfaceFlinger ADPF hints. A/B against b40: QS, launcher, recents, app-start, and battery unplugged.
 - **Release in progress:**
@@ -69,7 +69,7 @@ Crashes (all fixed):
 - [x] Speaker audio: sipa.bin amp firmware (b17b). All 4 amps on with a test tone; the user confirmed audio.
 - [x] Camera app (Aperture) opens (b17b, aux cameras hidden)
 - [x] Wallpaper & style opens (b17b, Flex clock overridden)
-- [x] Pixel Launcher recents crash / overlays missing on the first boot after a flash (system/core 0c087dc, b19)
+- [x] Pixel Launcher recents crash / overlays missing on the first boot after a flash (system/core c96203e, b19)
 - [x] Device name 'Redmi Pad Pro' (b19)
 - [x] Sweep: 19 launchable apps, 0 crashes/ANRs/tombstones (b18 onwards; every build through b29)
 
@@ -102,9 +102,9 @@ Done:
 - [x] **Commit stall:** spec_fence=1 made every HWC commit wait an extra vsync. Settings 46% -> 0.06% (b19)
 - [x] Stock libsdmcore under the source composer: dpi 249.5 (was 24.95), 0 video scaler errors, no SDM log spam (b23)
 - [x] **Landscape was 100% GPU-composed:** the inline rotator failed on the rotated, zoomed wallpaper and dropped
-      the whole frame to the GPU. enable_rotator_ui=0 (b26); made race-free as static props (41f8360, b28).
+      the whole frame to the GPU. enable_rotator_ui=0 (b26); made race-free as static props (541c516, b28).
       Settings 0.71% -> 0.09%, launcher 4.3% -> ~1.1%, client-composited frames 97% -> ~54%
-- [x] GPU hints: INTERACTION 600 MHz, EXPENSIVE_RENDERING 940 MHz (b19, 631fcbd b29)
+- [x] GPU hints: INTERACTION 600 MHz, EXPENSIVE_RENDERING 940 MHz (b19, b394fce b29)
 - [x] Dalvik heapgrowthlimit pinned at stock 256m (b22)
 
 Quick settings pulldown (12.1% on b18 -> **4.8-5.1% on b29**, p90 16-17 ms):
@@ -128,9 +128,9 @@ Boot-time panel timing (found 2026-09-28):
 Recents / overview (user request, 2026-09-28):
 - [~] b29 landscape 24% janky (p50 26 ms). Capping the 600dp landscape blur radius (b31) did NOT help (b32: 23%).
       Cause: SF rotates, scales and blurs the full-screen wallpaper every frame (landscape GPU 5.1 ms vs 3.3 ms portrait).
-      Fix: ro.launcher.depth.overview=false (9edcd3d, b34; no depth behind overview, as stock HyperOS).
+      Fix: ro.launcher.depth.overview=false (cf1fab7, b34; no depth behind overview, as stock HyperOS).
       **b34: recents 2.5-3.0% (was 23%), SF missed frames 22 (was ~2900), 0 client-composited frames**
-      LauncherOverlayDizi caps it at 30dp (f7f3d1b, b31). Portrait was 7.3%, blur-off 3.0%.
+      LauncherOverlayDizi caps it at 30dp (96fda0a, b31). Portrait was 7.3%, blur-off 3.0%.
       The b31 measurement (55%) ran on a bad 60 Hz boot: re-measure on b32
 - [ ] Task-snapshot binder calls ~24 ms each (LauncherBgIO, background; stock uses the same snapshot config)
 - [~] App drawer open/close (launcher fling test ~10% on b34): the drawer blur costs ~4 pts (blur off 5.9%).
@@ -138,7 +138,7 @@ Recents / overview (user request, 2026-09-28):
 
 Still to do:
 - [ ] Power HAL tuning, touch boost, ADPF (research/performance.md)
-- [x] zram lz4 (3211e86, b35): within noise, kept. **ADPF on** (7e681ea, b36): works under enforcing, jank within noise
+- [x] zram lz4 (5eebdf4, b35): within noise, kept. **ADPF on** (725a92f, b36): works under enforcing, jank within noise
 - [x] Dalvik phone-6144 A/B: no gain (cold equal or worse), rejected (research/performance.md s15)
 - [ ] Boot time and app start against stock; thermals under sustained load; battery drain
 
@@ -171,10 +171,10 @@ Still to do:
 - [x] GameBar RAM temp zone (b25)
 - [ ] Dead garnet sepolicy (hal_fingerprint.te, rild.te, hal_mlipay.te) and genfs entries (goodix, fpc)
 - [ ] Local patches listed and upstreamable:
-  - system/core 0c087dc
-  - frameworks/native 3d7babc
+  - system/core c96203e
+  - frameworks/native 0771ce4
   - vendor/gms
-  - kernel ec878c8
+  - kernel a67b949
 - [ ] `installclean` build, OTA zip, sideload test
 - [ ] Trees committed cleanly (device, vendor, dizi-kernel)
 
@@ -189,7 +189,7 @@ Still to do:
   - enforcing, 0 denials
   - sweep 0 crashes
   - camera, Wi-Fi, BT OK
-- [~] Shipped opt-in: dizi-kernel 37bdd2f `Image-source`, BoardConfig `DIZI_SOURCE_KERNEL=true` (2aa1b41). b30 building
+- [~] Shipped opt-in: dizi-kernel 585cb4b `Image-source`, BoardConfig `DIZI_SOURCE_KERNEL=true` (63662b3). b30 building
 - [x] **b34-b37 run the source kernel flashed** (soak: 4 rounds of sweep + exercise + recents on b37 with 0 crashes/ANRs;
       the only tombstones are SurfaceFlinger aborts from my manual composer restarts): 0 denials, 373 modules, no errors, sweep 0 crashes, exercise and validate
       PASS, Settings 0.09-0.18%, QS 4.8-5.5% (parity with the stock kernel). Boot loop running. TODO: deep sleep unplugged,
@@ -197,7 +197,7 @@ Still to do:
 - [~] Stage (b): **source msm_drm.ko** (MiCode display-drivers, CRC-identical, research/kernel-stage-b-display.md).
       b38 (baseline driver): boots, validate PASS, brightness 146..4095 OK, jank at parity, same dmesg error profile
       as stock. **b39: kernel splash-timing fix (patches/0002) works**: with the Parts kick disabled, 8/8 good boots, 4 with the
-      bootloader's 60 Hz timing (vtotal 5516 vs 2758) detected and reprogrammed. **Default since 5ebaee8**
+      bootloader's 60 Hz timing (vtotal 5516 vs 2758) detected and reprogrammed. **Default since fa2e529**
 - [ ] Other source modules, (c) source dtbo (research/kernel-source.md)
 - [ ] First camera open after boot sometimes captures nothing (b25, b38; a re-run always works)
 
@@ -223,7 +223,7 @@ Still to do:
   b24 (enforcing) building.
 - 2026-09-27 23:10: **b24 boots enforcing**: validate PASS, 0 crashes in the sweep, camera/Wi-Fi/BT OK.
   Found under enforcing: the thermal HAL read no temperatures (GameBar's chown of 2 zones plus my dontaudit
-  hiding dac_read_search). Fixed in b25 (81165d9). The kernel: research/kernel-source.md; the stage (a) GKI Image
+  hiding dac_read_search). Fixed in b25 (6ad1bae). The kernel: research/kernel-source.md; the stage (a) GKI Image
   build is running (kernel/build-gki.sh, stock clang r416183b).
 - 2026-09-27 23:40: b25 enforcing, 0 boot denials. **Source-built kernel boots** with all stock modules (stage a).
   QS: SF GPU composition is the limit (frame timeline: SF stuffing/GPU deadline), GPU already ~875/940 MHz; blur

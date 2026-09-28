@@ -1,5 +1,5 @@
-From 0c087dc44495f104cb91e4ef2e7951d9517276d7 Mon Sep 17 00:00:00 2001
-From: Alexander Gurov <alexander.gurov@konsulko.com>
+From c96203e6e68890780c0f0a0812e788322c61369a Mon Sep 17 00:00:00 2001
+From: Alexander Gurov <aliogu23@gmail.com>
 Date: Sun, 27 Sep 2026 19:00:03 +0300
 Subject: [PATCH] init: Keep /data/resource-cache on upgrade
 

@@ -142,7 +142,7 @@ Check config quickly with `tools/build.sh soong-N nothing` before a full build.
     show only at runtime: **check audio first if it fails while the HAL is up**.
 15. **Wireless/Play**: unlocking already drops Widevine to L3 on most Xiaomi
     devices; Play Integrity is out of scope.
-16. **Local patch in `vendor/gms`** (242a745, on top of upstream bka 89c3940):
+16. **Local patch in `vendor/gms`** (4ee211d, on top of upstream bka 89c3940):
     `CrossDeviceAccessServicePrimary` declares `org.apache.http.legacy` as an
     optional uses-library that its APK does not, so `manifest_check` fails
     (build-10). Re-apply after `repo sync` if upstream still has it.
@@ -169,14 +169,14 @@ Check config quickly with `tools/build.sh soong-N nothing` before a full build.
     boot-1). Use `fastboot erase userdata` (flash-bl.sh does), or zero the
     first 64 MiB from OrangeFox. Boot logs survive in the `oops` partition
     (mtdoops, `/dev/block/by-name/oops`, 7 records) even when pstore is empty.
-20. **Local patch in `system/core`** (0c087dc): EvoX's init.rc wiped
+20. **Local patch in `system/core`** (c96203e): EvoX's init.rc wiped
     `/data/resource-cache` when `persist.sys.is_upgrade=1`, racing with
     OverlayManagerService. On the first boot after every dirty flash or OTA,
     all static overlays (ours, Pixel config, recents component) were
     `STATE_NO_IDMAP`: Pixel Launcher lost its recents permissions and crashed
     on rotation, and device overlays and the pen key handler were not applied.
     Before b19, reboot once after flashing before testing anything.
-21. **Local patch in `frameworks/native`** (3d7babc): Vulkan RenderEngine
+21. **Local patch in `frameworks/native`** (0771ce4): Vulkan RenderEngine
     asks for REALTIME queue priority when the Adreno driver doesn't answer
     the global priority query. GL stays the default; see
     research/vulkan-adreno710.md.
@@ -190,7 +190,7 @@ Check config quickly with `tools/build.sh soong-N nothing` before a full build.
     `push-images.sh` seeds `super.img` from the newest staged one (APFS
     clone) and rsync sends only the changed blocks, 0.2–0.4 GB of 4 GB.
     rsync `-z` fails against macOS openrsync; use `ssh -C`.
-25. **Kernel defaults (since 5ebaee8):** the source-built GKI Image (`Image-source`) and the source
+25. **Kernel defaults (since fa2e529):** the source-built GKI Image (`Image-source`) and the source
     `msm_drm.ko` with the splash-timing fix. `DIZI_SOURCE_KERNEL=false` and `DIZI_SOURCE_DISPLAY=` (empty)
     select the stock prebuilts. The XiaomiParts 60->120 Hz round trip stays as a backstop
     (`settings put global dizi_refresh_kick 0` disables it).
@@ -200,7 +200,7 @@ Check config quickly with `tools/build.sh soong-N nothing` before a full build.
     `avb.pem` for vbmeta) and writes the signed OTA zip plus the fastboot package (images,
     `release/flash-dizi.sh`, INSTALL.md) to `release/out/<name>/`. **Back up `keys/` and never commit
     it:** updates only install over builds signed with the same keys.
-    Signing needs the `build/make` releasetools fix a77041a (`PartitionMapFromTargetFiles` got a
+    Signing needs the `build/make` releasetools fix 504650b (`PartitionMapFromTargetFiles` got a
     target-files zip and crashed); rebuild the host tools after changing releasetools, since
     `sign_target_files_apks` etc. are bundled Python binaries in `out-release/host`.
 27. **Build archive.** `tools/archive-build.sh <id>` keeps a build's flashable images in `builds/<id>`,
@@ -230,5 +230,5 @@ Per-partition images (including `persist`, `modemst1/2`, `fsg`) are in
 ## Status
 
 - Stage 0 (safety, recon, backups, firmware sync): done.
-- Stage A1 (first boot): build-13 staged on the Mac (insecure adb, early USB attach, OrangeFox as recovery_a). build-12 flashall hung entering recovery fastbootd; tablet unreachable until forced into the bootloader. Next: flash-bl.sh build-13. Was: build-12 in progress (build-10: vendor/gms uses-library mismatch, patched; build-11: five dizi camera helper blobs failed check_elf_file, fixed with blob fixups 39f3033). Staging also holds the 6144 dalvik heap commit, deliberately not merged (Stage B A/B test).
+- Stage A1 (first boot): build-13 staged on the Mac (insecure adb, early USB attach, OrangeFox as recovery_a). build-12 flashall hung entering recovery fastbootd; tablet unreachable until forced into the bootloader. Next: flash-bl.sh build-13. Was: build-12 in progress (build-10: vendor/gms uses-library mismatch, patched; build-11: five dizi camera helper blobs failed check_elf_file, fixed with blob fixups e4a7d5e). Staging also holds the 6144 dalvik heap commit, deliberately not merged (Stage B A/B test).
 - Pen support written and protocol verified on stock; untested in EvoX.
