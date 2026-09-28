@@ -87,5 +87,9 @@ Flash Xiaomi's fastboot ROM for dizi with its `flash_all.sh` (**not** `flash_all
 
 ## Source
 
-- Device tree, vendor blobs and kernel: see the release page.
-- The kernel is LineageOS `android_kernel_xiaomi_sm7435` plus MiCode's `ruan-u-oss` display driver.
+- Device tree: https://github.com/g8row/device_xiaomi_dizi
+- Kernel artefacts: https://github.com/g8row/device_xiaomi_dizi-kernel
+- Vendor blobs: https://github.com/g8row/vendor_xiaomi_dizi
+- Kernel: https://github.com/g8row/android_kernel_xiaomi_sm7435 (branch `lineage-23.2-dizi`)
+- Display driver: https://github.com/g8row/dizi-display-drivers
+- Bring-up tooling and notes: https://github.com/g8row/dizi-bringup

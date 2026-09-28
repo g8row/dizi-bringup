@@ -200,8 +200,8 @@ Check config quickly with `tools/build.sh soong-N nothing` before a full build.
     `avb.pem` for vbmeta) and writes the signed OTA zip plus the fastboot package (images,
     `release/flash-dizi.sh`, INSTALL.md) to `release/out/<name>/`. **Back up `keys/` and never commit
     it:** updates only install over builds signed with the same keys.
-    Signing needs the `build/make` releasetools fix 07b7820 (`PartitionMapFromTargetFiles` got a
-    ZipFile and crashed); rebuild the host tools after changing releasetools, since
+    Signing needs the `build/make` releasetools fix a77041a (`PartitionMapFromTargetFiles` got a
+    target-files zip and crashed); rebuild the host tools after changing releasetools, since
     `sign_target_files_apks` etc. are bundled Python binaries in `out-release/host`.
 27. **Build archive.** `tools/archive-build.sh <id>` keeps a build's flashable images in `builds/<id>`,
     and `push-images.sh`/`deploy.sh` use it, so a later build in `out/` can't replace an unflashed one.
