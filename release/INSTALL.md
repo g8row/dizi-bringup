@@ -54,7 +54,7 @@ Updates only install over builds signed with the same keys, i.e. this ROM's own 
 - **Touch and pen:**
   - touch;
   - the Redmi Smart Pen: automatic pairing, pressure, hover, palm rejection;
-  - pen settings in *Settings → Connected devices → Pen* (button actions: fixed in this build, not yet re-verified).
+  - pen settings in *Settings → Connected devices → Pen*, with configurable button actions.
   - double-tap to wake: *Settings → Display → Tap to wake* (off by default).
 - **Audio:** all four speakers and the microphones.
 - **Camera:** rear and front, photo and video.

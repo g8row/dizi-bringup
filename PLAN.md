@@ -12,39 +12,36 @@ item. Details and gotchas go in README.md, measurements in logs/, analysis in re
 - SELinux enforcing at the end
 - then Stage C, the source kernel
 
-## Current state (2026-09-28 14:30) – the tablet is away again (the user is moving)
+## Current state (2026-09-28 17:00)
 
-- **Tablet: release-1** (signed `user` build, slot b), installed exactly as INSTALL.md says: fastboot flash the four
-  images, recovery Format data, `adb sideload` (3 GB in 6 min, no stall), reboot. The first boot came up with
-  release-keys, SELinux enforcing and 120 Hz on touch. The user set up the tablet and enabled USB debugging.
-  Found: 74 avc denials on the user build (mediaprovider→radio_service, hal_bluetooth→ramdump dir,
-  dbg props, etc.), and the kernel version string reads `-dirty`.
-- **Published** (public, github.com/g8row): device_xiaomi_dizi, device_xiaomi_dizi-kernel, vendor_xiaomi_dizi,
-  android_kernel_xiaomi_sm7435 (branch lineage-23.2-dizi), dizi-display-drivers, dizi-bringup. All history is
-  authored as the personal identity (rewritten from the corporate one; see memory). Nothing on Telegram yet.
-- **Recents -> app jank** (tools/recents-open-jank.sh, research/performance.md section 16): about 13% of display
-  frames are janky on b39 and release-1 alike, in landscape and portrait, with or without window blurs. About 90%
-  are `sfLongGpuJankyFrames` (SF GPU composition past the deadline). Candidate fix **build-42** (userdebug,
-  experiment/launch-gpu cfb5c40: LAUNCH holds the GPU at 734 MHz for 2 s), archived.
-- **Archived, ready to flash** (`builds/`): build-40 (pen button fix), build-41-tune (ADPF tune), build-42.
-- **DT2W:** research in research/dt2w.md.
+- **Tablet: release-1** (signed user build, slot a after the dirty-update test) with a **Magisk-patched boot_a**
+  (for live A/B; the stock release boot.img restores it, and a sideload replaces it).
+- **Release install path fully tested:**
+  - clean install (fastboot flash the four images, recovery Format data, sideload, reboot);
+  - dirty update (sideload again: same android_id, data and setup intact, slot b→a).
+  - `flash-dizi.sh` is still untested.
+- **Verified by the user:** pen buttons (all pen features now confirmed), double-tap to wake (by hand, then built in),
+  the blur toggle in Settings → Display.
+- **release-2 building:** release-1 + double-tap to wake (83fa9e8, off by default) + USB attach recovery on user
+  builds (f32ec4b). Sign as a new name, then sideload as a dirty update.
+- **Recents -> app jank (research/performance.md 16-16b):** about 16% of display frames; SF GPU composition runs long.
+  - Ruled out, live: GPU clock, DDR clock, idle timer, SF phase offsets, GPU backpressure, blur, snapshot-scale config.
+  - The Pixel Launcher prebuilt needs 9-16 ms of GPU per frame (p90-p95) in the transition.
+  - The remaining lever is Launcher3 Quickstep from source (`evox/packages/apps/Launcher3`); the user hasn't decided.
+- **Published:** the six g8row repos; Telegram not yet.
 
 **Next up (in order):**
-0. **When the tablet is back:**
-   (a) On release-1 (user build, no root): `tools/recents-open-trace.sh release-1` and
-       `trace_processor_shell -q tools/perfetto/recents-open.sql <trace>` (the query is not yet run against a
-       real trace) to split the jank by phase (overview / open / home) and show the GPU clock in each phase.
-   (b) Test the dirty update: sideload the same zip again from recovery; the data must survive.
-   (c) Flash build-42. This is a userdebug build over release data: expect a format, since the keys differ. Then
-       run recents-open-jank. Because it's userdebug with root, also A/B the GPU floor live
-       (`/sys/class/kgsl/kgsl-3d0/devfreq/min_freq`) and check the pen buttons (the b40 fix is included).
-   (d) Test `flash-dizi.sh` once. Then publish the release (release/TELEGRAM.md).
-1. The user-build denials (above), and whether the `-dirty` kernel version needs a clean kernel checkout.
-2. Phase 1 gaps: headphone/USB-C/BT audio, keyboard, OTG, 33 W charging, hotspot.
+0. Sign release-2, stage it, and the user sideloads it (dirty). Check Tap to wake and USB after a reboot without a replug.
+1. DT2W standby drain: overnight unplugged with Tap to wake on vs the ~6 mA baseline; then on-then-off without a reboot.
+   Closed-cover taps (PhoneWindowManager lid check, if needed).
+2. Test `flash-dizi.sh` once; then publish (release/TELEGRAM.md).
+3. Launcher3 Quickstep experiment (Recents jank, desktop-windowing bugs), if the user wants it.
+4. The user-build avc denials (74 on release-1), the `-dirty` kernel version string.
+5. Phase 1 gaps: headphone/USB-C/BT audio, keyboard, OTG, 33 W charging, hotspot.
 
 **Waiting on the user:**
 - Unplug USB for the deep-sleep test.
-- Pen buttons (upper = Home, lower = New note), the Parts pressed colour.
+- The Parts pressed colour.
 - Allow the Mac mic prompt (audio loopback tests).
 
 **Test rig:**
