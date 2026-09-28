@@ -12,33 +12,35 @@ item. Details and gotchas go in README.md, measurements in logs/, analysis in re
 - SELinux enforcing at the end
 - then Stage C, the source kernel
 
-## Current state (2026-09-28 10:10) – the tablet is away (the user is moving)
+## Current state (2026-09-28 14:30) – the tablet is away again (the user is moving)
 
-- **Tablet: b39** (last flashed). b40 (the pen button fix) was built but not flashed: the deploy was stopped
-  before the flash step when the tablet left.
-- **Archived, ready to flash** (`builds/`):
-  - **build-40:** main line = b39 + the pen stylus-keycode fix (e5ba70e). Flash first; ask the user to test the pen buttons.
-  - **build-41-tune:** experiment/adpf-tune = b40 + a softer INTERACTION CPU floor (little 1.32 GHz, big 1.19 GHz,
-    was 1.96/1.50) + SurfaceFlinger ADPF hints. A/B against b40: QS, launcher, recents, app-start, and battery unplugged.
-- **Release in progress:**
-  - `RELEASE=1` user build `release-1` (out-release);
-  - private keys in `keys/`;
-  - `tools/sign-release.sh`, `release/flash-dizi.sh`, `release/INSTALL.md`, `release/RELEASE_NOTES.md`.
-  - Nothing is published yet: where to publish is the user's call.
+- **Tablet: release-1** (signed `user` build, slot b), installed exactly as INSTALL.md says: fastboot flash the four
+  images, recovery Format data, `adb sideload` (3 GB in 6 min, no stall), reboot. The first boot came up with
+  release-keys, SELinux enforcing and 120 Hz on touch. The user set up the tablet and enabled USB debugging.
+  Found: 74 avc denials on the user build (mediaprovider→radio_service, hal_bluetooth→ramdump dir,
+  dbg props, etc.), and the kernel version string reads `-dirty`.
+- **Published** (public, github.com/g8row): device_xiaomi_dizi, device_xiaomi_dizi-kernel, vendor_xiaomi_dizi,
+  android_kernel_xiaomi_sm7435 (branch lineage-23.2-dizi), dizi-display-drivers, dizi-bringup. All history is
+  authored as the personal identity (rewritten from the corporate one; see memory). Nothing on Telegram yet.
+- **Recents -> app jank** (tools/recents-open-jank.sh, research/performance.md section 16): about 13% of display
+  frames are janky on b39 and release-1 alike, in landscape and portrait, with or without window blurs. About 90%
+  are `sfLongGpuJankyFrames` (SF GPU composition past the deadline). Candidate fix **build-42** (userdebug,
+  experiment/launch-gpu cfb5c40: LAUNCH holds the GPU at 734 MHz for 2 s), archived.
+- **Archived, ready to flash** (`builds/`): build-40 (pen button fix), build-41-tune (ADPF tune), build-42.
+- **DT2W:** research in research/dt2w.md.
 
 **Next up (in order):**
-0. **When the tablet is back:** (a) flash b40 and have the user test the pen buttons; (b) A/B b41-tune;
-   (c) **test the release as a user would**: sign release-1, then run the EvoX install exactly as INSTALL.md says
-   (fastboot flash boot/dtbo/vendor_boot/recovery, recovery **Format data**, `adb sideload` the signed zip,
-   reboot), check that the first boot comes up with encryption working, then sideload the same zip again as a
-   dirty update. Also test `flash-dizi.sh`. Only then publish (release/TELEGRAM.md).
-1. Confirm the b32 round trip over the boot loop, re-measure recents on a good boot (the b31 run was a bad boot).
-   Silent mic check (tools/audio-rec). Then the source kernel on top of b32 and its soak.
-2. Source-kernel soak on b30: QS/app jank parity, pen mode 20, camera, overnight drain. If clean, make the
-   source Image the default.
-3. Phase 1 gaps: mic recording, headphone/USB-C audio, BT audio, Wi-Fi connect/5 GHz/hotspot, charging rate,
-   MTP/OTG, recovery + OTA sideload, video codecs.
-4. Release hygiene (dead garnet sepolicy, bring-up flags), then kernel stage (b): source modules.
+0. **When the tablet is back:**
+   (a) On release-1 (user build, no root): `tools/recents-open-trace.sh release-1` and
+       `trace_processor_shell -q tools/perfetto/recents-open.sql <trace>` (the query is not yet run against a
+       real trace) to split the jank by phase (overview / open / home) and show the GPU clock in each phase.
+   (b) Test the dirty update: sideload the same zip again from recovery; the data must survive.
+   (c) Flash build-42. This is a userdebug build over release data: expect a format, since the keys differ. Then
+       run recents-open-jank. Because it's userdebug with root, also A/B the GPU floor live
+       (`/sys/class/kgsl/kgsl-3d0/devfreq/min_freq`) and check the pen buttons (the b40 fix is included).
+   (d) Test `flash-dizi.sh` once. Then publish the release (release/TELEGRAM.md).
+1. The user-build denials (above), and whether the `-dirty` kernel version needs a clean kernel checkout.
+2. Phase 1 gaps: headphone/USB-C/BT audio, keyboard, OTG, 33 W charging, hotspot.
 
 **Waiting on the user:**
 - Unplug USB for the deep-sleep test.

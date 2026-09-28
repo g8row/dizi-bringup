@@ -537,3 +537,34 @@ tools/app-start.sh (cold: median of 3 after force-stop; return: after opening al
 - **Dalvik phone-xhdpi-6144 vs tablet-2048** (live props + zygote restart, USAP pool on): cold starts
   equal or slightly worse (Settings 554 vs 540, Chrome 354 vs 328 ms), hot marginally better, jank equal.
   **Rejected**, keeping the tablet profile (the user's intuition was right).
+
+## 16. Opening an app from Recents (release-1, b39, 2026-09-28)
+
+`tools/recents-open-jank.sh` (user-build safe): from home, enter overview, tap the Settings or Chrome task
+card (found by name in a UI dump), wait 2 s, go home. 10 cycles, warm second run.
+
+| Run | launcher hwui janky | display timeline janky | SF missedFrames | clientComposition | sfLongGpu (of janky) |
+|---|---|---|---|---|---|
+| b39 userdebug, landscape | 8.15% | 14.8% | 638 / 3541 | 801 | 1027 / 1266 |
+| release-1 user, landscape | 7.24% | 13.5% | 853 / 3383 | 1231 | 949 / 1108 |
+| release-1, window blurs off | 6.90% | 13.0% | 849 / 3417 | 1253 | – |
+| release-1, portrait | 6.71% | 13.1% | 873 / 3315 | 2491 | 930 / 1081 |
+
+- **Findings:**
+  - The release is not a regression; b39 is the same.
+  - About 90% of the janky frames are SurfaceFlinger GPU composition running long (`sfLongGpuJankyFrames`).
+    The rest are app deadline misses. `appBufferStuffing` (3-6k) is the backpressure that follows, not a cause.
+- **What it is not:**
+  - **Blur:** during the open animation the launcher layer carries `backgroundBlurRadius=60`, which forces it and
+    the wallpaper to GPU composition. But `disable_window_blurs=1` changes nothing.
+  - **Wallpaper rotation:** in landscape the wallpaper (2560x1600, ROT_90) is GPU-composed even at rest, because
+    the inline rotator tops out at 1200 lines (`in_rot_maxheight`); see e91e6e2 for why `enable_rotator_ui=0`. But
+    portrait, which needs no rotation, janks the same.
+- **Composition during the animation:** mid-animation captures show the whole stack briefly CLIENT, plain app
+  layers included. The HWC strategy drops to GPU, and then the GPU pass is slow.
+- **Hypothesis (unverified):** the GPU clock is low when the transition starts. `LAUNCH` (sent by
+  `startActivityFromRecents` and by going home, via `RootWindowContainer.startPowerModeLaunchIfNeeded`) boosts only
+  the CPU. `INTERACTION` floors the GPU at 600 MHz and `EXPENSIVE_RENDERING` at 940 MHz.
+  - Candidate fix: **build-42** (experiment/launch-gpu, `LAUNCH` → kgsl `min_freq` 734 MHz for 2 s).
+  - Verify with `tools/recents-open-trace.sh` + `tools/perfetto/recents-open.sql` (jank per phase, GPU MHz per
+    phase), and on userdebug by writing `min_freq` live.
