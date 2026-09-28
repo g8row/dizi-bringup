@@ -4,10 +4,9 @@
   Put it in .repo/local_manifests/ after `repo init -u https://github.com/Evolution-X/manifest -b bka`,
   then `repo sync`, then:
     source build/envsetup.sh && lunch lineage_dizi-bp4a-user && m evolution
-  Replace GITHUB_USER with the account that hosts the dizi repositories.
 -->
 <manifest>
-  <remote name="dizi" fetch="https://github.com/GITHUB_USER" />
+  <remote name="dizi" fetch="https://github.com/g8row" />
 
   <!-- Device, prebuilt kernel artefacts, proprietary blobs -->
   <project path="device/xiaomi/dizi" name="device_xiaomi_dizi" remote="dizi" revision="bka" />
