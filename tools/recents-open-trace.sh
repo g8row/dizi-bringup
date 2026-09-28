@@ -24,12 +24,12 @@ for ((i = 0; i < cycles; i++)); do
 	xy=$(a shell 'log -t RPHASE overview; input keyevent APP_SWITCH; sleep 1.5; uiautomator dump /sdcard/o.xml >/dev/null; cat /sdcard/o.xml' |
 		grep -o '<node [^>]*>' | grep 'id/snapshot' | grep "content-desc=\"$t\"" | head -1 |
 		sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
-		awk '{print int(($1 + $3) / 2), int(($2 + $4) / 2)}')
+		awk '{print int(($1 + $3) / 2), int(($2 + $4) / 2)}' || true)
 	[[ -n $xy ]] || { echo "cycle $i: no $t card" >&2; continue; }
 	a shell "log -t RPHASE open; input tap $xy; sleep 2; log -t RPHASE home; input keyevent HOME; sleep 1.5; log -t RPHASE idle"
 done
 sleep 1
-a shell 'pkill -INT perfetto'
+a shell 'pkill -INT perfetto' || true  # already stopped if the cycles outlast duration_ms
 sleep 4
 ssh -i "$DIZI_SSH_KEY" "$DIZI_HOST" "/opt/homebrew/bin/adb -s $DIZI_SERIAL exec-out cat $dev" > "$out/trace.pftrace"
 ls -l "$out/trace.pftrace"

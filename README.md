@@ -92,8 +92,8 @@ Check config quickly with `tools/build.sh soong-N nothing` before a full build.
    Android boot (`/sys/class/udc/a600000.dwc3/state` = `not attached`, Mac
    sees nothing; fastboot is unaffected). Fix: `echo none` then
    `echo peripheral` to `/sys/devices/platform/soc/a600000.ssusb/mode`.
-   HyperOS: Magisk `/data/adb/service.d/adb-tcp.sh`. EvoX: `init.dizi.usb_attach.sh`
-   (debuggable builds).
+   HyperOS: Magisk `/data/adb/service.d/adb-tcp.sh`. EvoX: `init.dizi.usb_attach.sh`, early (from adbd) on
+   debuggable builds and at boot_completed on all builds (f32ec4b; release-1 lacks it, so it needs a replug).
 2. **macOS Local Network privacy** blocks Homebrew `adb` from LAN addresses
    ("No route to host"). `~/dizi/adb-wifi-relay.sh` on the Mac relays
    `127.0.0.1:15555` → tablet `:5555` through Apple's `nc`. adb over TCP is

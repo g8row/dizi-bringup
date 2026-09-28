@@ -568,3 +568,44 @@ card (found by name in a UI dump), wait 2 s, go home. 10 cycles, warm second run
   - Candidate fix: **build-42** (experiment/launch-gpu, `LAUNCH` → kgsl `min_freq` 734 MHz for 2 s).
   - Verify with `tools/recents-open-trace.sh` + `tools/perfetto/recents-open.sql` (jank per phase, GPU MHz per
     phase), and on userdebug by writing `min_freq` live.
+
+### 16a. Perfetto trace (release-1, landscape, 6 cycles)
+
+`tools/recents-open-trace.sh` + `tools/perfetto/recents-open.sql`. Phases are the WM Shell transition perf sessions
+(`PerfSession-d0-Transition`), labelled by the preceding `playTransition`. SF display frames are the frame
+timeline slices without a layer; "janky" excludes buffer stuffing. (User builds don't record logcat in perfetto, so
+the RPHASE markers are missing; the config now also has process_stats.)
+
+| Phase | SF frames | janky | GPU clock |
+|---|---|---|---|
+| Recents -> app (TO_FRONT) | 432 | 44.9% | 600-940 MHz (starts at 600 or higher, often 940) |
+| app -> home (OPEN) | 427 | 31.9% | 600-940 MHz |
+| everything else | 968 | 11.2% | |
+
+- **Launch GPU boost (build-42): refuted.**
+  - The GPU is at least at the INTERACTION floor (600 MHz) when every transition starts, and at 940 MHz (the top
+    clock, from EXPENSIVE_RENDERING) in the short ones.
+  - The short ~400 ms windows jank on nearly every frame (20/25, 22/24, 21/22) at 940 MHz.
+- **SF main thread in the transition windows** (averages; peaks in brackets):
+
+  | Slice | Time per frame |
+  |---|---|
+  | `present` | 5.45 ms (24) |
+  | `prepareFrame` / `chooseCompositionStrategy` (the HWC validate round trip) | 2.0 ms (8.8) |
+  | `finishFrame` / `composeSurfaces` | 1.6 ms (14.9) |
+  | `updateLayerSnapshots` | 1.3 ms |
+  | `postComposition` | 0.5 ms × 2 |
+
+  - That is about 11 ms per frame against an 8.3 ms vsync.
+  - The composer's own `PresentDisplay` is 0.2 ms and the async DRM commit 1.5 ms, so the time is inside SF.
+  - Many frames carry a ~4 ms `present for <display> vsyncIn 11.3ms` span.
+  - RenderEngine CPU is small (`drawLayers` 1.6 ms). The GPU fence waits (`RE Completion` / `GPU completion`)
+    are 5-6 ms.
+  - `RegionSampling::captureSample` (4.4 ms, up to 34 ms, 46 times) also competes for the GPU.
+- **SF timing differs from stock.** Ours are garnet's durations: sf 12.33 ms, app 13.67 ms, in every mode, with
+  `use_phase_offsets_as_durations=1`. Stock HyperOS uses phase offsets:
+  - `high_fps_late_sf -2 ms`, i.e. about 10.3 ms for SF at 120 Hz;
+  - `early -4 ms`, `early_gl -2 ms`, `late_app +1 ms`;
+  - plus `latch_unsignaled=1`, `disable_backpressure=1`, `enable_gl_backpressure=1`,
+    `disable_client_composition_cache=1` and `set_idle_timer_ms=50000` (ours 1100).
+- **Next:** A/B these live on a userdebug build (setprop, then `stop; start`). SF reads them only at startup.
