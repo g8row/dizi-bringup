@@ -9,12 +9,13 @@ id=${1:?build-id}; flings=${2:-20}; orient=${3:-landscape}
 out=$DIZI_ROOT/logs/$id/ui-jank-$orient-$(date +%H%M%S)
 mkdir -p "$out"
 a() { "$R" adb "$@" </dev/null 2>/dev/null | tr -d '\r'; }
+. "$(dirname "$0")/apps.sh"
 
 # package|launch intent (am start args)
 apps=(
 	"com.android.settings|-a android.settings.SETTINGS"
-	"com.google.android.apps.nexuslauncher|-a android.intent.action.MAIN -c android.intent.category.HOME"
-	"com.android.chrome|-a android.intent.action.VIEW -d https://en.wikipedia.org/wiki/Android_version_history"
+	"$launcher|-a android.intent.action.MAIN -c android.intent.category.HOME"
+	"$browser|-a android.intent.action.VIEW -d https://en.wikipedia.org/wiki/Android_version_history"
 )
 
 # Fixed orientation, swipes scaled to the rotated screen (physical 1600x2560).
@@ -27,6 +28,10 @@ a shell dumpsys SurfaceFlinger --timestats -disable -clear >/dev/null
 a shell dumpsys SurfaceFlinger --timestats -enable >/dev/null
 # QS_ONLY=1 skips the app flings (fast A/B runs).
 [[ -n ${QS_ONLY:-} ]] && apps=()
+# ONLY=<regex> keeps only the apps whose package matches and skips the QS pulldown.
+if [[ -n ${ONLY:-} ]]; then
+	for i in "${!apps[@]}"; do [[ ${apps[i]%%|*} =~ $ONLY ]] || unset 'apps[i]'; done
+fi
 for entry in "${apps[@]}"; do
 	pkg=${entry%%|*}; intent=${entry#*|}
 	a shell "am start -W $intent" >/dev/null
@@ -46,6 +51,7 @@ for entry in "${apps[@]}"; do
 	} | tee -a "$out/summary.txt"
 done
 # Quick settings pulldown: shade, then full QS, then close, measured in SystemUI.
+if [[ -z ${ONLY:-} ]]; then
 a shell 'input keyevent HOME'
 sleep 2
 a shell dumpsys gfxinfo com.android.systemui reset >/dev/null
@@ -64,6 +70,7 @@ a shell dumpsys gfxinfo com.android.systemui > "$out/gfxinfo-systemui-qs.txt"
 		"$out/gfxinfo-systemui-qs.txt" | head -10 | sed 's/^ *//' | tr '\n' ';'
 	echo
 } | tee -a "$out/summary.txt"
+fi
 a shell dumpsys SurfaceFlinger --timestats -dump > "$out/sf-timestats.txt"
 a shell dumpsys SurfaceFlinger --timestats -disable >/dev/null
 grep -E 'totalFrames|missedFrames|clientCompositionFrames|displayOnTime|jankPayload|totalTimelineFrames|jankyFrames|sfDeadlineMisses|appDeadlineMisses' \

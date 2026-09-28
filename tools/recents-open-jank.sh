@@ -8,17 +8,17 @@ set -uo pipefail
 . "$(dirname "$0")/env"
 R="$(dirname "$0")/remote.sh"
 id=${1:?build-id}; cycles=${2:-10}; orient=${3:-landscape}
-launcher=com.google.android.apps.nexuslauncher
 out=$DIZI_ROOT/logs/$id/recents-open-jank-$orient-$(date +%H%M%S)
 mkdir -p "$out"
 a() { "$R" adb "$@" </dev/null 2>/dev/null | tr -d '\r'; }
+. "$(dirname "$0")/apps.sh"
 
 a shell 'svc power stayon usb; input keyevent WAKEUP; wm dismiss-keyguard; settings put system accelerometer_rotation 0'
 if [[ $orient == portrait ]]; then a shell settings put system user_rotation 0
 else a shell settings put system user_rotation 1; fi
 
 # Populate recents; the last two are the ones reopened.
-for intent in "-n com.google.android.deskclock/com.android.deskclock.DeskClock" \
+for intent in "$clock_intent" \
 	"-a android.intent.action.MAIN -c android.intent.category.APP_CALCULATOR" \
 	"-a android.intent.action.VIEW -d https://en.wikipedia.org/wiki/Android_version_history" \
 	"-a android.settings.SETTINGS"; do
@@ -27,12 +27,12 @@ for intent in "-n com.google.android.deskclock/com.android.deskclock.DeskClock" 
 done
 a shell 'input keyevent HOME'
 sleep 2
-targets=(Settings Chrome)
+targets=(Settings "$browser_label")
 
 # Centre of the task card whose snapshot is labelled $1, from a UI dump of overview.
 card() {
-	a shell 'uiautomator dump /sdcard/recents-open.xml >/dev/null; cat /sdcard/recents-open.xml' |
-		grep -o '<node [^>]*>' | grep 'id/snapshot' | grep "content-desc=\"$1\"" | head -1 |
+	a shell 'uiautomator dump /data/local/tmp/recents-open.xml >/dev/null; cat /data/local/tmp/recents-open.xml' |
+		grep -o '<node [^>]*>' | grep 'id/snapshot' | grep -E "content-desc=\"$1( [^\"]*)?\"" | head -1 |
 		sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
 		awk '{print int(($1 + $3) / 2), int(($2 + $4) / 2)}'
 }

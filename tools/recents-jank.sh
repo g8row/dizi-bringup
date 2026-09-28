@@ -8,10 +8,10 @@ set -uo pipefail
 . "$(dirname "$0")/env"
 R="$(dirname "$0")/remote.sh"
 id=${1:?build-id}; cycles=${2:-10}; orient=${3:-landscape}
-launcher=com.google.android.apps.nexuslauncher
 out=$DIZI_ROOT/logs/$id/recents-jank-$orient-$(date +%H%M%S)
 mkdir -p "$out"
 a() { "$R" adb "$@" </dev/null 2>/dev/null | tr -d '\r'; }
+. "$(dirname "$0")/apps.sh"
 
 a shell 'svc power stayon usb; input keyevent WAKEUP; wm dismiss-keyguard; settings put system accelerometer_rotation 0'
 if [[ $orient == portrait ]]; then a shell settings put system user_rotation 0; w=1600; h=2560
@@ -21,9 +21,9 @@ y=$((h / 2)); x1=$((w * 3 / 4)); x2=$((w / 4))
 # Populate recents.
 for intent in "-a android.settings.SETTINGS" \
 	"-a android.intent.action.VIEW -d https://en.wikipedia.org/wiki/Android_version_history" \
-	"-n com.google.android.deskclock/com.android.deskclock.DeskClock" \
+	"$clock_intent" \
 	"-a android.intent.action.MAIN -c android.intent.category.APP_CALCULATOR" \
-	"-n com.google.android.apps.photos/.home.HomeActivity"; do
+	"$gallery_intent"; do
 	a shell "am start -W $intent" >/dev/null
 	sleep 2
 done

@@ -1,0 +1,49 @@
+# Deep (root) trace: frame timeline, sched with wakeups, CPU/GPU freq, kgsl GPU submissions, binder,
+# atrace gfx/view/wm/am/input/dalvik/hal/binder, phase markers in logcat.
+buffers { size_kb: 262144 fill_policy: RING_BUFFER }
+buffers { size_kb: 8192 fill_policy: RING_BUFFER }
+data_sources { config { name: "android.surfaceflinger.frametimeline" } }
+data_sources { config { name: "android.surfaceflinger.layers" surfaceflinger_layers_config { mode: MODE_ACTIVE trace_flags: TRACE_FLAG_INPUT trace_flags: TRACE_FLAG_COMPOSITION trace_flags: TRACE_FLAG_VIRTUAL_DISPLAYS } } }
+data_sources { config { name: "linux.process_stats" process_stats_config { scan_all_processes_on_start: true } } }
+data_sources {
+  config {
+    name: "linux.ftrace"
+    ftrace_config {
+      ftrace_events: "sched/sched_switch"
+      ftrace_events: "sched/sched_waking"
+      ftrace_events: "sched/sched_wakeup_new"
+      ftrace_events: "power/gpu_frequency"
+      ftrace_events: "power/cpu_frequency"
+      ftrace_events: "power/cpu_idle"
+      ftrace_events: "kgsl/adreno_cmdbatch_submitted"
+      ftrace_events: "kgsl/adreno_cmdbatch_retired"
+      ftrace_events: "kgsl/kgsl_pwrlevel"
+      ftrace_events: "kgsl/kgsl_gpubusy"
+      ftrace_events: "binder/binder_transaction"
+      ftrace_events: "binder/binder_transaction_received"
+      ftrace_events: "block/block_rq_issue"
+      ftrace_events: "block/block_rq_complete"
+      atrace_categories: "gfx"
+      atrace_categories: "view"
+      atrace_categories: "wm"
+      atrace_categories: "am"
+      atrace_categories: "input"
+      atrace_categories: "dalvik"
+      atrace_categories: "hal"
+      atrace_categories: "binder_driver"
+      atrace_categories: "sched"
+      atrace_categories: "freq"
+      atrace_apps: "*"
+      buffer_size_kb: 131072
+      symbolize_ksyms: false
+    }
+  }
+}
+data_sources {
+  config {
+    name: "android.log"
+    target_buffer: 1
+    android_log_config { log_ids: LID_DEFAULT }
+  }
+}
+duration_ms: 120000

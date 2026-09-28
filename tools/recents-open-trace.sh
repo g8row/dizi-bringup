@@ -10,19 +10,20 @@ id=${1:?build-id}; cycles=${2:-6}
 out=$DIZI_ROOT/logs/$id/recents-open-trace-$(date +%H%M%S)
 mkdir -p "$out"
 a() { "$R" adb "$@" </dev/null 2>/dev/null | tr -d '\r'; }
+. "$(dirname "$0")/apps.sh"
 dev=/data/misc/perfetto-traces/recents-open.pftrace
 
 a shell "rm -f $dev"
 ssh -i "$DIZI_SSH_KEY" "$DIZI_HOST" \
 	"/opt/homebrew/bin/adb -s $DIZI_SERIAL shell perfetto --txt -c - -o $dev --background" \
-	< "$DIZI_ROOT/tools/perfetto/recents-open.pbtxt" >/dev/null
+	< "${CFG:-$DIZI_ROOT/tools/perfetto/recents-open.pbtxt}" >/dev/null
 sleep 2
 a shell 'svc power stayon usb; input keyevent WAKEUP; wm dismiss-keyguard; input keyevent HOME'
 sleep 2
 for ((i = 0; i < cycles; i++)); do
-	t=$( ((i % 2)) && echo Chrome || echo Settings )
-	xy=$(a shell 'log -t RPHASE overview; input keyevent APP_SWITCH; sleep 1.5; uiautomator dump /sdcard/o.xml >/dev/null; cat /sdcard/o.xml' |
-		grep -o '<node [^>]*>' | grep 'id/snapshot' | grep "content-desc=\"$t\"" | head -1 |
+	t=$( ((i % 2)) && echo "$browser_label" || echo Settings )
+	xy=$(a shell 'log -t RPHASE overview; input keyevent APP_SWITCH; sleep 1.5; uiautomator dump /data/local/tmp/o.xml >/dev/null; cat /data/local/tmp/o.xml' |
+		grep -o '<node [^>]*>' | grep 'id/snapshot' | grep -E "content-desc=\"$t( [^\"]*)?\"" | head -1 |
 		sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/' |
 		awk '{print int(($1 + $3) / 2), int(($2 + $4) / 2)}' || true)
 	[[ -n $xy ]] || { echo "cycle $i: no $t card" >&2; continue; }
