@@ -1,8 +1,11 @@
 #!/bin/bash
-# Build Evolution X for dizi. Usage: build.sh <log-name> [make targets...]
+# Build Evolution X for dizi (or ruan). Usage: build.sh <log-name> [make targets...]
+#   DEVICE=dizi|ruan (default dizi)
 #   VARIANT=user|userdebug (default userdebug, the bench build)
 #   RELEASE=1: a shareable build: VARIANT=user, no insecure adb or bench keys, and its own
 #              out dir (out-release) so the bench's incremental out/ is left alone.
+# Out dirs are per device (tools/env). Bench builds run in out/, a symlink this script points
+# at out-<device>/; a lock keeps two builds from switching it under each other.
 set -o pipefail
 . "$(dirname "$0")/env"
 name=${1:?log-name}; shift
@@ -13,8 +16,16 @@ if [[ -n ${RELEASE:-} ]]; then
 	unset WITH_ADB_INSECURE
 	# Relative: an absolute OUT_DIR trips soong path checks (platform_testing). Lineage's kernel
 	# header generation needs vendor/lineage's relative-OUT_DIR fix for this.
-	export OUT_DIR=out-release
+	export OUT_DIR=$DIZI_OUT_RELEASE_NAME
 else
+	exec {lock}> "$DIZI_ROOT/evox/.out.lock"
+	flock -n "$lock" || { echo "another bench build holds evox/out" >&2; exit 1; }
+	if [[ -e out && ! -L out ]]; then
+		echo "evox/out is a directory; move it to $DIZI_OUT_NAME first" >&2
+		exit 1
+	fi
+	mkdir -p "$DIZI_OUT_NAME"
+	ln -sfn "$DIZI_OUT_NAME" out
 	# Bench: Lineage sets ro.debuggable=0 and adb auth on userdebug unless
 	# WITH_ADB_INSECURE is set; we need adb (root) on first boot without a screen tap.
 	export WITH_ADB_INSECURE=${WITH_ADB_INSECURE-true}
@@ -28,7 +39,7 @@ fi
 variant=${VARIANT:-userdebug}
 export USE_CCACHE=1 CCACHE_EXEC=/usr/bin/ccache CCACHE_DIR=$DIZI_ROOT/.ccache
 source build/envsetup.sh >/dev/null 2>&1
-lunch "lineage_dizi-bp4a-$variant" >/dev/null 2>&1 || { echo "lunch failed"; exit 1; }
+lunch "lineage_$DIZI_DEVICE-bp4a-$variant" >/dev/null 2>&1 || { echo "lunch failed"; exit 1; }
 m $targets -j48 > "$DIZI_ROOT/logs/$name.log" 2>&1
 rc=$?
 echo "exit=$rc" >> "$DIZI_ROOT/logs/$name.log"

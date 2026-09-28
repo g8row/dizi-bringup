@@ -6,6 +6,17 @@ DIZI_SERIAL=
 DIZI_REMOTE_DIR=dizi
 DIZI_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DIZI_WIFI=127.0.0.1:15555
+# Device to build/flash (dizi, or ruan the 5G model). Each device has its own bench out
+# dir, evox/out-<device>; tools/build.sh points the evox/out symlink at it, so the paths
+# inside stay out/... and ninja stays incremental across device switches. Release builds
+# use out-release (dizi) and out-release-<device>.
+DIZI_DEVICE=${DEVICE:-dizi}
+DIZI_OUT_NAME=out-$DIZI_DEVICE
+if [[ $DIZI_DEVICE == dizi ]]; then
+	DIZI_OUT_RELEASE_NAME=out-release
+else
+	DIZI_OUT_RELEASE_NAME=out-release-$DIZI_DEVICE
+fi
 if [[ -f $DIZI_ROOT/tools/env.local ]]; then
 	. "$DIZI_ROOT/tools/env.local"
 fi

@@ -5,7 +5,7 @@
 # Usage: tools/archive-build.sh <build-id> [out-dir]
 set -euo pipefail
 . "$(dirname "$0")/env"
-id=${1:?build-id}; out=${2:-$DIZI_ROOT/evox/out/target/product/dizi}
+id=${1:?build-id}; out=${2:-$DIZI_ROOT/evox/$DIZI_OUT_NAME/target/product/$DIZI_DEVICE}
 dst=$DIZI_ROOT/builds/$id
 mkdir -p "$dst"
 for f in android-info.txt boot.img vendor_boot.img dtbo.img recovery.img vbmeta.img vbmeta_system.img super.img; do

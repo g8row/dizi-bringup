@@ -3,20 +3,26 @@
 #   in:  the user target-files from `RELEASE=1 tools/build.sh <id> target-files-package otatools`
 #   out: release/out/<name>/
 #          <name>.zip           signed OTA (recovery sideload / updater)
-#          <name>-fastboot.zip  images + flash-dizi.sh + INSTALL.md + SHA256SUMS
+#          <name>-fastboot.zip  images + flash-<device>.sh + INSTALL.md + collect-logs + SHA256SUMS
 #          boot.img dtbo.img vendor_boot.img recovery.img  for the recovery + sideload install
 # Keys: $DIZI_ROOT/keys (private, never commit). Missing APEX keys are generated.
-# Usage: tools/sign-release.sh [name]
+# Usage: [DEVICE=dizi|ruan] [SIGN_BENCH=1] tools/sign-release.sh [name]
+#   SIGN_BENCH=1 signs the bench out dir's target-files (a userdebug test build) instead of
+#   the release out dir's.
 set -euo pipefail
 . "$(dirname "$0")/env"
 E=$DIZI_ROOT/evox
-OUTR=$E/out-release
+if [[ -n ${SIGN_BENCH:-} ]]; then
+	OUTR=$E/$DIZI_OUT_NAME
+else
+	OUTR=$E/$DIZI_OUT_RELEASE_NAME
+fi
 K=$DIZI_ROOT/keys
 H=$OUTR/host/linux-x86
 export PATH=$H/bin:$PATH
-tf=$(ls -t "$OUTR"/target/product/dizi/obj/PACKAGING/target_files_intermediates/*-target_files*.zip | head -1)
+tf=$(ls -t "$OUTR"/target/product/$DIZI_DEVICE/obj/PACKAGING/target_files_intermediates/*-target_files*.zip | head -1)
 date=$(date +%Y%m%d)
-name=${1:-EvolutionX-16.0-$date-dizi-11.11-Unofficial}
+name=${1:-EvolutionX-16.0-$date-$DIZI_DEVICE-11.11-Unofficial}
 work=$DIZI_ROOT/release/out/$name
 mkdir -p "$work"
 echo "target-files: $tf"
@@ -66,10 +72,14 @@ unzip -q -o "$work/img.zip" -d "$img"
 if [[ ! -f $img/super.img ]]; then
 	build_super_image "$signed" "$img/super.img" > "$work/super.log" 2>&1 || { tail -20 "$work/super.log"; exit 1; }
 fi
-# Keep what flash-dizi.sh writes; the logical partition images live inside super.img.
+# Keep what flash-<device>.sh writes; the logical partition images live inside super.img.
 ( cd "$img" && ls | grep -vxE 'boot.img|vendor_boot.img|dtbo.img|vbmeta.img|vbmeta_system.img|recovery.img|super.img|android-info.txt' | xargs -r rm -f )
 head -c 8192 /dev/zero > "$img/misc.img"
-cp "$DIZI_ROOT/release/flash-dizi.sh" "$DIZI_ROOT/release/INSTALL.md" "$img/"
+install_md=$DIZI_ROOT/release/INSTALL.md
+[[ $DIZI_DEVICE == dizi ]] || install_md=$DIZI_ROOT/release/INSTALL-$DIZI_DEVICE.md
+cp "$DIZI_ROOT/release/flash-$DIZI_DEVICE.sh" "$img/"
+cp "$install_md" "$img/INSTALL.md"
+cp "$DIZI_ROOT/release/collect-logs.sh" "$DIZI_ROOT/release/collect-logs.bat" "$img/"
 ( cd "$img" && sha256sum ./*.img > SHA256SUMS )
 ( cd "$img" && zip -q -r "$work/$name-fastboot.zip" . )
 # The usual Evolution X install flashes these four, then sideloads the zip in recovery.
