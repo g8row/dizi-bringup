@@ -166,7 +166,7 @@ Build-46 (bka, 2026-09-29), with the Lineage findings applied:
   |---|---|
   | QS pulldown | **13.4-16.1%, p90 32-34 ms**, even pinned at 120 Hz |
   | QS with the shade blur off | **3.70%, p90 14 ms** |
-  | App drawer | 6.11%, p90 23 ms |
+  | App drawer | 6.11% (p90 23 ms) on the first run after boot; **2.94% (p90 11 ms) warm** (cnb-4, no blur: the drawer layer trace shows radius 0; only the rotated wallpaper is GPU-composed, as on 16) |
   | Recents -> app (Settings/Clock) | 8.55% / 15.72% |
   - Android 17's shade blur is several times more expensive than 16's on this GPU.
   - cnb-4 therefore ships `persist.sysui.disableBlur=true` as the default; the Blur effects switch turns it back on.
