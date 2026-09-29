@@ -44,7 +44,10 @@ while read -r apex; do
 		chmod 600 "$key".pk8 "$key".pem
 	fi
 	apex_args+=(--extra_apks "$apex=$key" --extra_apex_payload_key "$apex=$key.pem")
-done < <(unzip -p "$tf" META/apexkeys.txt | sed -n 's/^name="\([^"]*\)".*/\1/p' | sort -u)
+done < <(unzip -p "$tf" META/apexkeys.txt | grep -v 'container_certificate="PRESIGNED"' |
+	sed -n 's/^name="\([^"]*\)".*/\1/p' | sort -u)
+# PRESIGNED APEXes (Google's prebuilt GMS/mainline APEXes) keep their signatures: re-signing
+# com.google.android.gmssystem re-signs Play Services inside it, and Google sign-in fails.
 rm -f "$make_key4096"
 echo "APEX keys: $((${#apex_args[@]} / 4))"
 
