@@ -160,7 +160,19 @@ Build-46 (bka, 2026-09-29), with the Lineage findings applied:
   - one system_server start;
   - no tombstones;
   - display, Wi-Fi and adb root work.
-- Validation and the app sweep: see below (in progress).
+- **validate.sh:** 17 PASS, 0 FAIL. **App sweep:** 17 apps, 0 crashes, 0 tombstones, 0 ANRs.
+- **Jank on 17 (Pixel Launcher, cnb-3):**
+  | Test | Result |
+  |---|---|
+  | QS pulldown | **13.4-16.1%, p90 32-34 ms**, even pinned at 120 Hz |
+  | QS with the shade blur off | **3.70%, p90 14 ms** |
+  | App drawer | 6.11%, p90 23 ms |
+  | Recents -> app (Settings/Clock) | 8.55% / 15.72% |
+  - Android 17's shade blur is several times more expensive than 16's on this GPU.
+  - cnb-4 therefore ships `persist.sysui.disableBlur=true` as the default; the Blur effects switch turns it back on.
+  - It also adds `max_frame_buffer_acquired_buffers=3`.
+- The display idles at 60 Hz on 17 (`frameRateCategoryRate normal=60, high=90`) and goes to 120 Hz on interaction.
+  The mapping in SurfaceFlinger is the same as 16's.
 
 ## Method
 
