@@ -174,6 +174,52 @@ Build-46 (bka, 2026-09-29), with the Lineage findings applied:
 - The display idles at 60 Hz on 17 (`frameRateCategoryRate normal=60, high=90`) and goes to 120 Hz on interaction.
   The mapping in SurfaceFlinger is the same as 16's.
 
+## Recents deep dive, round 2 (Android 17 cnb-4, 2026-09-29)
+
+Test: `tools/recents-ab.sh`, i.e. recents-open with Settings and Clock, a warm-up, then two measured runs.
+Values are launcher hwui janky % / SF display-timeline janky %.
+
+| Lever | Recents -> app | QS | Verdict |
+|---|---|---|---|
+| Baseline (GL RE, SF/app 12.3/13.7 ms) | 6.8-7.2% / 11.2-11.9% | 3.5-3.6% | - |
+| GPU pinned at 940 MHz, always on, no nap | 6.2-6.3% / 11.1-11.3% | - | noise: not GPU-clock bound |
+| CPUs at max, DDR/L3 floors at max | 6.8% / 11.4-11.9% | - | no gain |
+| SF RenderEngine Vulkan Graphite (`graphite_desktop_optin`) | 6.7-7.1% / 14.2-15.3% | 3.27% | worse |
+| SF RenderEngine Vulkan Ganesh (`skiavkthreaded`) | 7.0-7.6% / 16.0% | 3.43% | worse |
+| SF threads pinned to the big cores (cpuset 4-7) | 5.0-5.1% / 10.2-10.6% | 2.84% | no gain over the durations alone |
+| SF/app duration 10.0/13.7 ms | 7.6-7.8% / 12.4% | 3.67% | worse |
+| SF/app duration 16.7/13.7 ms | 7.1-7.4% / 11.4-11.6% | 3.64% | no gain: the SF budget isn't it |
+| SF/app duration 12.3/16.7 ms | 4.9-5.1% / 10.5-11.2% | 2.70% | better |
+| **SF/app duration 16.7/16.7 ms** | **4.7-5.0% / 10.1-10.4%** | **2.80%** | **kept** (about 3-4 ms more latency) |
+| SF/app duration 16.7/20.8 ms | 4.0-4.4% / 10.3-10.9% | 2.25% | slightly better, but +7 ms latency hurts the pen |
+| SF/app duration 20.8/16.7 ms | 5.2% / 12.5-12.8% | 2.63% | display worse |
+| 16.7/16.7 + HWUI Vulkan (`skiavk`) | **3.9% / 10.3-11.0%** | 3.17% | **kept**: the launcher's own frames gain ~1 pt; app sweep clean |
+
+- **The fresh trace changes the picture.** On 17, most janky display frames during recents are "SurfaceFlinger
+  Stuffing" (45) and "SF Scheduling" (17); only 17 are GPU deadline misses.
+  - The pipeline was too shallow for the apps.
+  - With 13.7 ms of app budget at 8.3 ms vsync, the launcher's frame (RenderThread plus GPU) often isn't ready when SF
+    latches, so SF runs behind.
+  - Giving apps two vsyncs (16.7 ms) fixes most of it. Clocks, cores and RE backends don't move the number.
+- SF's main thread is FIFO (priority 97). It is only SCHED_OTHER for the first seconds after a restart, while it
+  primes the shader cache. Most of its runtime is on the little cores, but moving it to the big cores gains nothing.
+- `ro.surface_flinger.uclamp.min` is unset. It is not needed, given the cpuset result.
+- **Shipped in cnb-7:** durations 16.7/16.7, `TARGET_USES_VULKAN := true`, shade blur off by default, and
+  max_frame_buffer=3.
+  - `ro.hwui.use_vulkan` comes from TARGET_USES_VULKAN in the vendor build.prop, which overrides a system.prop entry.
+- Controlled HWUI A/B on cnb-7 (same boot; GL, Vulkan, GL):
+
+  | HWUI | Recents -> app |
+  |---|---|
+  | GL | 6.6-6.7% / 12.5-13.0% |
+  | Vulkan | **4.7-4.8% / 10.8-11.0%** |
+  | GL again | 5.8-6.5% / 12.0-12.6% |
+
+  Absolute numbers drift ±1 pt between boots; the Vulkan gain holds.
+- cnb-7 defaults, after the background dexopt: QS **1.96%** (p90 13 ms), drawer 3.68% (p90 15 ms).
+- - Applied to all three trees: durations 16.7/16.7 (vendor.prop).
+  `ro.hwui.use_vulkan=true` is on Android 17 (cnb) only for now.
+
 ## Method
 
 Tools are in `tools/`:
