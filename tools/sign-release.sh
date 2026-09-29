@@ -23,8 +23,9 @@ export PATH=$H/bin:$PATH
 tf=$(ls -t "$OUTR"/target/product/$DIZI_DEVICE/obj/PACKAGING/target_files_intermediates/*-target_files*.zip | head -1)
 date=$(date +%Y%m%d)
 # The build's own release name (EvolutionX-<android>-<date>-<device>-<evo>-Unofficial).
-built=$(unzip -p "$tf" SYSTEM/build.prop SYSTEM_EXT/etc/build.prop SYSTEM/system_ext/etc/build.prop 2>/dev/null |
-	sed -n 's/^ro.evolution.build.version=//p' | head -1)
+# unzip -p extracts nothing when one of several named paths is missing, so read each build.prop.
+built=$(for f in $(unzip -Z1 "$tf" | grep '/build.prop$'); do unzip -p "$tf" "$f"; done |
+	sed -n 's/^ro.evolution.build.version=//p' | head -1 || true)
 name=${1:-${built:-EvolutionX-16.0-$date-$DIZI_DEVICE-11.11-Unofficial}}
 work=$DIZI_ROOT/release/out/$name
 mkdir -p "$work"
