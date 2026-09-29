@@ -80,6 +80,7 @@ fi
 head -c 8192 /dev/zero > "$img/misc.img"
 install_md=$DIZI_ROOT/release/INSTALL.md
 [[ $DIZI_DEVICE == dizi ]] || install_md=$DIZI_ROOT/release/INSTALL-$DIZI_DEVICE.md
+[[ $DIZI_TREE == evox-cnb && $DIZI_DEVICE == dizi ]] && install_md=$DIZI_ROOT/release/INSTALL-cnb.md
 cp "$DIZI_ROOT/release/flash-$DIZI_DEVICE.sh" "$img/"
 cp "$install_md" "$img/INSTALL.md"
 cp "$DIZI_ROOT/release/collect-logs.sh" "$DIZI_ROOT/release/collect-logs.bat" "$img/"
