@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Local manifest for building Evolution X cnb (Android 17) for the Redmi Pad Pro (dizi).
+  Put it in .repo/local_manifests/ after `repo init -u https://github.com/Evolution-X/manifest -b cnb`,
+  then `repo sync`, apply device/xiaomi/dizi/patches (frameworks/native, vendor/lineage), then:
+    source build/envsetup.sh && lunch lineage_dizi-cp2a-user && m evolution
+-->
+<manifest>
+  <remote name="dizi" fetch="https://github.com/g8row" />
+
+  <!-- Device (branch cnb: bka-dizi + garnet's cnb changes: FCM 7, 64-bit only, legacy libion) -->
+  <project path="device/xiaomi/dizi" name="device_xiaomi_dizi" remote="dizi" revision="cnb" />
+  <project path="device/xiaomi/dizi-kernel" name="device_xiaomi_dizi-kernel" remote="dizi" revision="bka" />
+  <project path="vendor/xiaomi/dizi" name="vendor_xiaomi_dizi" remote="dizi" revision="cnb" />
+
+  <!-- Kernel headers for the QTI HALs (from the garnet kernel tree), and shared dependencies -->
+  <project path="kernel/xiaomi/sm7435" name="kernel_xiaomi_garnet" remote="evo-devices" revision="cnb" clone-depth="1" />
+  <project path="kernel/xiaomi/sm7435-modules" name="kernel_xiaomi_garnet-modules" remote="evo-devices" revision="cnb" clone-depth="1" />
+  <project path="hardware/xiaomi" name="Evolution-X-Devices/hardware_xiaomi" remote="github-non-los" revision="cnb-no-dolby" />
+  <project path="hardware/dolby" name="Evolution-X-Devices/hardware_dolby" remote="github-non-los" revision="cnb-aospa" />
+  <project path="packages/apps/GameBar" name="packages_apps_GameBar" remote="evo-devices" revision="cnb" />
+</manifest>

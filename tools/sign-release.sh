@@ -6,12 +6,12 @@
 #          <name>-fastboot.zip  images + flash-<device>.sh + INSTALL.md + collect-logs + SHA256SUMS
 #          boot.img dtbo.img vendor_boot.img recovery.img  for the recovery + sideload install
 # Keys: $DIZI_ROOT/keys (private, never commit). Missing APEX keys are generated.
-# Usage: [DEVICE=dizi|ruan] [SIGN_BENCH=1] tools/sign-release.sh [name]
+# Usage: [DEVICE=dizi|ruan] [TREE=evox|evox-cnb] [SIGN_BENCH=1] tools/sign-release.sh [name]
 #   SIGN_BENCH=1 signs the bench out dir's target-files (a userdebug test build) instead of
 #   the release out dir's.
 set -euo pipefail
 . "$(dirname "$0")/env"
-E=$DIZI_ROOT/evox
+E=$DIZI_ROOT/$DIZI_TREE
 if [[ -n ${SIGN_BENCH:-} ]]; then
 	OUTR=$E/$DIZI_OUT_NAME
 else
@@ -22,7 +22,10 @@ H=$OUTR/host/linux-x86
 export PATH=$H/bin:$PATH
 tf=$(ls -t "$OUTR"/target/product/$DIZI_DEVICE/obj/PACKAGING/target_files_intermediates/*-target_files*.zip | head -1)
 date=$(date +%Y%m%d)
-name=${1:-EvolutionX-16.0-$date-$DIZI_DEVICE-11.11-Unofficial}
+# The build's own release name (EvolutionX-<android>-<date>-<device>-<evo>-Unofficial).
+built=$(unzip -p "$tf" SYSTEM/build.prop SYSTEM_EXT/etc/build.prop SYSTEM/system_ext/etc/build.prop 2>/dev/null |
+	sed -n 's/^ro.evolution.build.version=//p' | head -1)
+name=${1:-${built:-EvolutionX-16.0-$date-$DIZI_DEVICE-11.11-Unofficial}}
 work=$DIZI_ROOT/release/out/$name
 mkdir -p "$work"
 echo "target-files: $tf"
