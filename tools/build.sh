@@ -46,7 +46,9 @@ fi
 variant=${VARIANT:-userdebug}
 export USE_CCACHE=1 CCACHE_EXEC=/usr/bin/ccache CCACHE_DIR=$DIZI_ROOT/.ccache
 source build/envsetup.sh >/dev/null 2>&1
-lunch "lineage_$DIZI_DEVICE-bp4a-$variant" >/dev/null 2>&1 || { echo "lunch failed"; exit 1; }
+# The tree's release config (bp4a on 16/bka, cp2a on 17/cnb).
+release=$(sed -n "s/^aosp_target_release=//p" vendor/lineage/vars/aosp_target_release 2>/dev/null)
+lunch "lineage_$DIZI_DEVICE-${release:-bp4a}-$variant" >/dev/null 2>&1 || { echo "lunch failed"; exit 1; }
 m $targets -j48 > "$DIZI_ROOT/logs/$name.log" 2>&1
 rc=$?
 echo "exit=$rc" >> "$DIZI_ROOT/logs/$name.log"

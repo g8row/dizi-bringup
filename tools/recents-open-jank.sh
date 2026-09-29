@@ -27,7 +27,8 @@ for intent in "$clock_intent" \
 done
 a shell 'input keyevent HOME'
 sleep 2
-targets=(Settings "$browser_label")
+# RECENTS_TARGETS="Settings Calculator" compares ROMs with the same apps (the browser differs).
+if [[ -n ${RECENTS_TARGETS:-} ]]; then read -ra targets <<<"$RECENTS_TARGETS"; else targets=(Settings "$browser_label"); fi
 
 # Centre of the task card whose snapshot is labelled $1, from a UI dump of overview.
 card() {

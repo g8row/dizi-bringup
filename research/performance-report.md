@@ -53,6 +53,17 @@ same bottleneck.
   (`com.android.launcher3.util.VisualEffects`). A change restarts the launcher when you leave settings.
 - **Notification shade blur** (XiaomiParts > Display > Blur effects): `persist.sysui.disableBlur`, then a SystemUI restart.
 
+### Toggle results (lineage-9, same session, warm)
+| Setting | App drawer | Icon -> app (launcher / display) | Recents -> app display |
+|---|---|---|---|
+| Defaults: blur off, corners on | 2.25%, p90 7 ms | 0.66% / 3.69% | 23.5% |
+| All blur on, corners on (upstream look) | 6.64%, p90 18 ms | 0.66% / 3.28% | 22.9% |
+| Blur off, corners off | 2.30%, p90 7 ms | 0.80% / 3.42% | 22.6% |
+
+- With the upstream flags on, Trebuchet's enhanced transitions do not blur behind a launching app.
+- The expensive "behind apps" blur is the legacy (flag-off) depth blur. It is off by default, so a drawer-blur-off
+  setup does not bring it back.
+
 ### Rounded corners
 - SF composes any layer with a corner radius on the GPU. So it is a real cost, but not the main one: blur is.
 - Framework `config_supportsRoundedCornersOnWindows=false`:
@@ -60,13 +71,21 @@ same bottleneck.
   - the display-timeline jank did not improve (7.3% -> 8.6%, noise).
 - The toggle lets you trade the look for less GPU work. It defaults to on.
 
+### SurfaceFlinger: framebuffer buffers (kept)
+`ro.surface_flinger.max_frame_buffer_acquired_buffers=3` (the stock HyperOS value; the port had the default of 2):
+- Recents -> app display timeline, same test: **22.2-23.5% -> 18.1%** (lineage-10 vs lineage-9). Launcher 8.6-9.5% -> 7.9%.
+- Icon-open, drawer and QS were unchanged.
+- Cost: one more 2560x1600 client-target buffer (about 16 MB).
+
 ### Tried and rejected (measured)
 | Change | Result |
 |---|---|
 | `config_wallpaperMaxScale=1` (no wallpaper zoom) | recents-open unchanged (9.0% / 21.7%), reverted |
 | `debug.sf.predict_hwc_composition_strategy=1` | icon-open worse (5.8% / 11.3%) |
 | `debug.sf.luma_sampling=0` | neutral to worse (recents display 24.8%) |
-| Rounded corners off (framework flag + task radius) | no display-timeline gain |
+| Rounded corners off (the Trebuchet toggle: framework flag, task radius 0 and every window-animation radius) | no gain: recents 22.6% vs 22.9-23.5%, icon-open 0.80% vs 0.66% |
+| `debug.sf.disable_client_composition_cache=1` (stock value) | no gain: recents 23.4%, QS 4.18% |
+| `debug.sf.latch_unsignaled=1` (stock value) | no gain: recents 22.95% vs 22.19% reference, QS 4.37% vs 4.46% |
 
 ### Correctness and boot fixes found along the way
 - **Boot hang (80 s lost per boot):** after hardware/dolby's crashing Dolby Vision codec2 service was disabled, the stock
@@ -90,7 +109,58 @@ same bottleneck.
 
 ## Evolution X
 
-(to be filled in: the Dolby fixes, the Pixel Launcher no-blur overlay toggle, shade blur toggle, measurements.)
+Build-46 (bka, 2026-09-29), with the Lineage findings applied:
+- **Dolby Vision codec2 off, and its VINTF instance dropped:** the same crash-at-every-boot and the same boot-hang trap as
+  on Lineage. EvoX boots with one system_server start and no tombstones. The ruan vendor tree got the same manifest fix,
+  because ruan inherits dizi's device.mk.
+- **XiaomiParts > Display > Blur effects: notification shade blur** (`persist.sysui.disableBlur`, applied live).
+- **No launcher blur switch on EvoX.** The Pixel Launcher's blur measured nearly free (table below).
+  - A runtime switch would need Parts to talk to OverlayManager. Parts runs in the vendor `devicesettings_app` domain, and
+    the platform neverallow (domain.te: vendor apps may only use stable services) forbids finding `overlay_service`.
+  - The measurements used `cmd overlay` on a test overlay.
+- `ro.surface_flinger.max_frame_buffer_acquired_buffers=3` (stock) is queued for the next EvoX build.
+
+| Path (EvoX, Pixel Launcher) | Blur on | Blur off |
+|---|---|---|
+| App drawer (launcher) | 1.37% | 0.81% |
+| Icon -> app (Play Store; launcher / display) | 3.51% / 4.58% | 3.83% / 5.49% (noise) |
+| Recents -> app (Settings/Chrome; launcher / display) | 5.76% / 11.73% | 5.73% / 11.05% |
+| QS pulldown (shade blur) | 4.04%, p90 16 ms | **2.43%**, p90 11 ms |
+
+- The Pixel Launcher's blur is cheap, like Trebuchet's with the upstream flags on. The shade blur costs the same on both ROMs.
+- **Cross-ROM caveat:** the recents-open test alternates Settings with the default browser: Chrome on EvoX, Jelly on
+  Lineage. Jelly's own frames are slow, so Lineage looked worse.
+  - With the same apps (`RECENTS_TARGETS="Settings Calculator"`), EvoX is 8.16% / 17.12%, close to Lineage.
+  - **Trebuchet and the Pixel Launcher are on par for recents.**
+- App sweep: 19 apps, 0 crashes, 0 tombstones, 0 ANRs.
+- **Build-47:** adds `max_frame_buffer_acquired_buffers=3`.
+  - Recents -> app (Settings/Clock; launcher / display): 6.2-12.5% / 9.5-11.4%. QS 5.15%.
+  - Lineage-11 on the same test: 7.9-8.0% / 17.3-18.2%.
+  - Run-to-run noise on recents is large here (one 85-frame run at 12.5%). The EvoX/Lineage recents gap is not settled.
+- **Parts shade switch (build-49 / lineage-13):** it needs no SystemUI restart, because BlurUtils reads the property on
+  every blur. Android 16 also ignores a force-stop of the persistent SystemUI.
+
+## Android 17 (Evolution X `cnb`), first build
+
+- **Tree:** `/build/alex/dizi/evox-cnb`: repo `cnb`, `--reference` to the bka tree. The whole sync took minutes.
+  - Local manifest: kernel headers, hardware_xiaomi `cnb-no-dolby`, hardware_dolby `cnb-aospa`, GameBar, all on `cnb`.
+- **Device tree:** branch `cnb-dizi` = bka-dizi plus garnet's cnb commits:
+  - FCM level 7;
+  - power-libperfmgr namespaces;
+  - legacy libion;
+  - Parts DefaultDialerManager fix;
+  - 64-bit only (core_64_bit_only, no TARGET_2ND_*).
+  The eSIM and kernel-clang commits don't apply.
+- **Build fixes:** one, `vendor_poweroffalarm_app` no longer exists in the Android 17 QTI vendor policy (dontaudit.te).
+  - cnb-1 (clean): 1 h 29 min to that failure; cnb-3 finished in 13 min.
+  - The 32-bit vendor blobs didn't block the 64-bit-only build.
+- **First flash (cnb-3):** Evolution X 17.0, `CP2A.260605.016`.
+  - boot_completed 54 s after the flash;
+  - SELinux enforcing;
+  - one system_server start;
+  - no tombstones;
+  - display, Wi-Fi and adb root work.
+- Validation and the app sweep: see below (in progress).
 
 ## Method
 
