@@ -217,7 +217,7 @@ Values are launcher hwui janky % / SF display-timeline janky %.
 
   Absolute numbers drift ±1 pt between boots; the Vulkan gain holds.
 - cnb-7 defaults, after the background dexopt: QS **1.96%** (p90 13 ms), drawer 3.68% (p90 15 ms).
-- - Applied to all three trees: durations 16.7/16.7 (vendor.prop).
+- Applied to all three trees: durations 16.7/16.7 (vendor.prop).
   `ro.hwui.use_vulkan=true` is on Android 17 (cnb) only for now.
 
 ## Method
